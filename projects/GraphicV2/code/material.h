@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/math/vec3.h"
+#include "config.h"
 #include <memory>
 #include <vector>
 
@@ -25,14 +25,14 @@ namespace material
 	class BlinnPhongMat : public BaseMaterial
 	{
 	protected:
-		vec3 ambient;
-		vec3 diffuse;
-		vec3 specular;
+		glm::vec3 ambient;
+		glm::vec3 diffuse;
+		glm::vec3 specular;
 		float shininess;
 
 	public:
 		BlinnPhongMat(){}
-		BlinnPhongMat(vec3 ambientV, vec3 diffuseV, vec3 specularV, float shininess = 32);
+		BlinnPhongMat(glm::vec3 ambientV, glm::vec3 diffuseV, glm::vec3 specularV, float shininess = 32);
 		void Apply(ShaderResource& program) override;
 	};
 }

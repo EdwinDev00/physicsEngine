@@ -66,14 +66,14 @@ Quad::Quad()
 	std::vector<Vertex> vertex(4);
 	VertexBufferLayout layout;
 	
-	vertex[0].position = vec3(-1, -1, 0); 
-	vertex[0].UV = vec2(0, 0);
-	vertex[1].position = vec3(1, -1, 0);
-	vertex[1].UV = vec2(1, 0);
-	vertex[2].position = vec3(1, 1, 0);
-	vertex[2].UV = vec2(1, 1);
-	vertex[3].position = vec3(-1, 1, 0);
-	vertex[3].UV = vec2(0, 1);
+	vertex[0].position = glm::vec3(-1, -1, 0);
+	vertex[0].UV = glm::vec2(0, 0);
+	vertex[1].position = glm::vec3(1, -1, 0);
+	vertex[1].UV = glm::vec2(1, 0);
+	vertex[2].position = glm::vec3(1, 1, 0);
+	vertex[2].UV = glm::vec2(1, 1);
+	vertex[3].position = glm::vec3(-1, 1, 0);
+	vertex[3].UV = glm::vec2(0, 1);
 
 	std::vector<unsigned int>  indices =
 	{

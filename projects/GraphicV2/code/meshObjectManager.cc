@@ -50,9 +50,9 @@ ObjData MeshObject::ParseObj(std::string source, std::string texSource)
 		}
 	}
 	data.baseMat =
-		new material::BlinnPhongMat(vec3(1.0f, 0.5f, 0.31f),
-									vec3(1.0f, 0.5f, 0.31f),
-									vec3(0.5f, 0.5f, 0.5f));
+		new material::BlinnPhongMat(glm::vec3(1.0f, 0.5f, 0.31f),
+									glm::vec3(1.0f, 0.5f, 0.31f),
+									glm::vec3(0.5f, 0.5f, 0.5f));
 
 	data.textures.push_back(Texture(texSource));
 	Texture defaultNormal;
@@ -91,21 +91,21 @@ std::shared_ptr<Model> MeshObject::LoadModel(std::string modelPath, std::string 
 	return modelList[modelPath];
 }
 
-void MeshObject::ReadDataV3(const std::string& line, std::vector<vec3>& out)
+void MeshObject::ReadDataV3(const std::string& line, std::vector<glm::vec3>& out)
 {
 	float vertex[3];
 	sscanf(line.c_str(), "%*s %f %f %f", &vertex[0], &vertex[1], &vertex[2]);
-	out.push_back(vec3(vertex[0], vertex[1], vertex[2]));
+	out.push_back(glm::vec3(vertex[0], vertex[1], vertex[2]));
 }
 
-void MeshObject::ReadDataV2(const std::string& line, std::vector<vec2>& out)
+void MeshObject::ReadDataV2(const std::string& line, std::vector<glm::vec2>& out)
 {
 	float vertex[2];
 	sscanf(line.c_str(), "%*s %f %f", &vertex[0], &vertex[1]);
-	out.push_back(vec2(vertex[0], vertex[1]));
+	out.push_back(glm::vec2(vertex[0], vertex[1]));
 }
 
-GameObject::GameObject(vec3 position, vec3 rotation, vec3 scale, std::string modelPath, std::string texPath)
+GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath)
 	: position(position), rotation(rotation), scale(scale)
 {
 	name = modelPath;
@@ -114,22 +114,27 @@ GameObject::GameObject(vec3 position, vec3 rotation, vec3 scale, std::string mod
 
 void GameObject::Draw(ShaderResource& program, Object::Camera& cam) 
 {
-	modelRotation = rotationx(rotation.x) *
+	/*modelRotation = glm::rotationx(rotation.x) *
 		rotationy(rotation.y) *
-		rotationz(rotation.z);
+		rotationz(rotation.z);*/
+	modelRotation = SetRotation(rotation);
 
-	modelScale = mat4(vec4(scale.x, 0, 0, 0),
-		vec4(0, scale.y, 0, 0),
-		vec4(0, 0, scale.z, 0),
-		vec4(0, 0, 0, 1));
+	modelScale = glm::mat4
+	   (glm::vec4(scale.x, 0, 0, 0),
+		glm::vec4(0, scale.y, 0, 0),
+		glm::vec4(0, 0, scale.z, 0),
+		glm::vec4(0, 0, 0, 1)
+	   );
 
-	modelTranslation = mat4(vec4(1, 0, 0, 0),
-		vec4(0, 1, 0, 0),
-		vec4(0, 0, 1, 0),
-		vec4(position.x, position.y, position.z, 1));
+	modelTranslation = glm::mat4
+	(glm::vec4(1, 0, 0, 0),
+		glm::vec4(0, 1, 0, 0),
+		glm::vec4(0, 0, 1, 0),
+		glm::vec4(position.x, position.y, position.z, 1)
+	);
 
-	mat4 modelMat = modelTranslation * modelRotation * modelScale;
-	mat4 MVP = cam.GetProjView() * modelMat;
+	glm::mat4 modelMat = modelTranslation * modelRotation * modelScale;
+	glm::mat4 MVP = cam.GetProjView() * modelMat;
 	
 	program.SetUniformMat4f("u_Model", modelMat);
 	program.SetUniformMat4f("u_MVP", MVP);
@@ -149,70 +154,3 @@ void GameObject::Draw(ShaderResource& program, Object::Camera& cam)
 		}
 	}
 }
-
-//std::shared_ptr<Model> MeshObject::CreateCube(float width, float height, float depth)
-//{
-//	// Vertex pos, vertex normal, texture coordinate,
-//	#pragma region Verticies & indices
-//	std::vector<float> cubevertices =
-//	{
-//		//Front 
-//		-0.5f * width, -0.5f * height, 0.5f * depth, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width, -0.5f * height, 0.5f * depth, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width,  0.5f * height, 0.5f * depth, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height, 0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//
-//		//bottom
-//		-0.5f * width, -0.5f * height, 0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width, -0.5f * height, 0.5f * depth, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width, -0.5f * height,-0.5f * depth, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width, -0.5f * height,-0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//
-//		 //top
-//		 0.5f * width,  0.5f * height, 0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height, 0.5f * depth, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width,  0.5f * height,-0.5f * depth, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height,-0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//
-//		//left
-//		-0.5f * width, -0.5f * height,  0.5f * depth,1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height,  0.5f * depth,1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		-0.5f * width, -0.5f * height, -0.5f * depth,0.0f, 0.0f,0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height, -0.5f * depth,0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//
-//		//right
-//		 0.5f * width, -0.5f * height,  0.5f * depth, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width,  0.5f * height,  0.5f * depth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width, -0.5f * height, -0.5f * depth, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-//		 0.5f * width,  0.5f * height, -0.5f * depth, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-//
-//		 //back
-//		-0.5f * width, -0.5f * height, -0.5f * depth, 0.0f, 1.0f,0.0f, 0.0f, 0.0f,
-//		 0.5f * width, -0.5f * height, -0.5f * depth, 1.0f, 1.0f,0.0f, 0.0f, 0.0f,
-//		 0.5f * width,  0.5f * height, -0.5f * depth, 1.0f, 0.0f,0.0f, 0.0f, 0.0f,
-//		-0.5f * width,  0.5f * height, -0.5f * depth, 0.0f, 0.0f,0.0f, 0.0f, 0.0f };
-//
-//	std::vector<unsigned int> cubeIndicies =
-//	{
-//		0, 1, 2,
-//		2, 3, 0,
-//
-//		4, 5, 6,
-//		6, 7, 5,
-//
-//		8, 9, 10,
-//		10, 11, 9,
-//
-//		12, 13, 14,
-//		14, 15, 13,
-//
-//		16, 17, 18,
-//		18, 19, 17,
-//
-//		20, 21, 22,
-//		22, 23, 20
-//	};
-//#pragma endregion
-//
-//	return std::make_shared<Model>(cubevertices, cubeIndicies);
-//}

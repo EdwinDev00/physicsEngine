@@ -10,7 +10,7 @@ LightManager* LightManager::instance = nullptr;
 int LightManager::lightCount;
 
 
-PointLight::PointLight(vec3 pos, vec3 color, float intensity)
+PointLight::PointLight(glm::vec3 pos, glm::vec3 color, float intensity)
 	: position(pos), color(color), intensity(intensity)
 {
 	//Create the light source and register it to the vector
@@ -42,11 +42,11 @@ void PointLight::Update(ShaderResource& program, Object::Camera& cam)
 	program.SetUniformVec3("camPos", cam.GetPosition());
 	program.SetUniformMat4f("projView", cam.GetProjView());
 
-	mat4 modelMatrix = mat4(
-		vec4(radius, 0, 0, 0),
-		vec4(0, radius, 0, 0),
-		vec4(0, 0, radius, 0),
-		vec4(position.x, position.y, position.z, 1));
+	glm::mat4 modelMatrix = glm::mat4(
+		glm::vec4(radius, 0, 0, 0),
+		glm::vec4(0, radius, 0, 0),
+		glm::vec4(0, 0, radius, 0),
+		glm::vec4(position.x, position.y, position.z, 1));
 
 	program.SetUniformMat4f("model", modelMatrix);
 
@@ -64,8 +64,8 @@ void PointLight::Update(ShaderResource& program, Object::Camera& cam)
 
 void PointLight::DisableLight(ShaderResource& program)
 {
-	program.SetUniformVec3(Spos, vec3());
-	program.SetUniformVec3(Scolor, vec3());
+	program.SetUniformVec3(Spos, glm::vec3());
+	program.SetUniformVec3(Scolor, glm::vec3());
 	program.SetUniform1f(Sintensity, 0);
 }
 
@@ -77,7 +77,7 @@ void PointLight::Orbit(float totalTime)
 	position.z = cos(totalTime * spinSpeed) * radius;
 }
 
-DirectionalLight::DirectionalLight(vec3 dir, vec3 color, float intensity)
+DirectionalLight::DirectionalLight(glm::vec3 dir, glm::vec3 color, float intensity)
 	: direction(dir), color(color), intensity(intensity)
 {
 	lightID = LightManager::Get()->GetLightCount();
@@ -93,7 +93,7 @@ void DirectionalLight::Update(ShaderResource& program, Object::Camera& cam)
 
 void DirectionalLight::DisableLight(ShaderResource& program)
 {
-	program.SetUniformVec3("dirLight.direction", vec3());
-	program.SetUniformVec3("dirLight.color", vec3());
+	program.SetUniformVec3("dirLight.direction", glm::vec3());
+	program.SetUniformVec3("dirLight.color", glm::vec3());
 	program.SetUniform1f("dirLight.intensity", 0);
 }

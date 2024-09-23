@@ -4,7 +4,7 @@
 #include "core/gltf.h"
 
 #include <vector>
-#include "core/math/mat4.h"
+#include "config.h"
 #include "texture.h"
 
 using json = nlohmann::json;
@@ -30,9 +30,9 @@ private:
 	std::vector<Texture> GetTexture(json primitiveAccessor);
 	
 	//Group the data from the source based on type
-	std::vector<vec2> groupFloatsVec2(std::vector<float> floatVec);
-	std::vector<vec3> groupFloatsVec3(std::vector<float>& floatVec);
-	std::vector<vec4> groupFloatsVec4(std::vector<float> floatVec);
+	std::vector<glm::vec2> groupFloatsVec2(std::vector<float> floatVec);
+	std::vector<glm::vec3> groupFloatsVec3(std::vector<float>& floatVec);
+	std::vector<glm::vec4> groupFloatsVec4(std::vector<float> floatVec);
 	
 	 void ParseData(const std::string& source);
 	 std::shared_ptr<Model> LoadGLTFMeshDataPrimitive();
@@ -55,5 +55,5 @@ public:
 	}
  
 	std::shared_ptr<Model> CreateGLTF(const std::string& source);
-	std::vector<vec4> CalcTangents(const std::vector<vec3>& positions, const std::vector<unsigned int>& indices, const std::vector<vec2>& UVs);
+	std::vector<glm::vec4> CalcTangents(const std::vector<glm::vec3>& positions, const std::vector<unsigned int>& indices, const std::vector<glm::vec2>& UVs);
 };

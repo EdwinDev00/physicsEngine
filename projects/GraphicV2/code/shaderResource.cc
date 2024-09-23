@@ -132,24 +132,24 @@ void ShaderResource::SetUniform1i(const std::string& name,int value)
 	glUniform1i(GetUniformLocation(name), value);
 }
 
-void ShaderResource::SetUniformVec2(const std::string& name, vec2 v)
+void ShaderResource::SetUniformVec2(const std::string& name, glm::vec2 v)
 {
 	glUniform2f(GetUniformLocation(name), v.x, v.y);
 }
 
-void ShaderResource::SetUniformVec3(const std::string& name, vec3 v)
+void ShaderResource::SetUniformVec3(const std::string& name, glm::vec3 v) //delete this use glm
 {
 	glUniform3f(GetUniformLocation(name), v.x, v.y, v.z);
 }
 
-void ShaderResource::SetUniformVec4(const std::string& name, vec4 v)
+void ShaderResource::SetUniformVec4(const std::string& name, glm::vec4 v)
 {
 	glUniform4f(GetUniformLocation(name), v.x, v.y, v.z,v.w);
 }
 
-void ShaderResource::SetUniformMat4f(const std::string& name, const mat4& matrix)
+void ShaderResource::SetUniformMat4f(const std::string& name, const glm::mat4& matrix)
 {
-	glUniformMatrix4fv(GetUniformLocation(name),1,GL_FALSE,&matrix.m[0][0]);
+	glUniformMatrix4fv(GetUniformLocation(name),1,GL_FALSE,&matrix[0][0]);
 }
 
 int ShaderResource::GetUniformLocation(const std::string& name) const

@@ -28,3 +28,6 @@ TARGET_INCLUDE_DIRECTORIES(imgui PUBLIC imgui imgui/examples/opengl3_example)
 SET_TARGET_PROPERTIES(imgui PROPERTIES FOLDER "exts/imgui")
 
 TARGET_LINK_LIBRARIES(exts INTERFACE imgui)
+
+ADD_SUBDIRECTORY(glm)
+#target_link_libraries(exts INTERFACE glm)

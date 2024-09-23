@@ -1,7 +1,8 @@
 #include "config.h"
 #include "Debug.h"
 #include "gl/glew.h"
-#include "core/math/mat4.h"
+
+//#include "core/math/mat4.h"
 
 namespace Debug
 {
@@ -17,19 +18,19 @@ namespace Debug
 	struct DrawCmd
 	{
 		DebugShape shape;
-		vec4 color;
+		glm::vec4 color;
 		float lineWidth;
 	};
 
 	struct LineCmd : DrawCmd
 	{
-		vec3 start;
-		vec3 end;
+		glm::vec3 start;
+		glm::vec3 end;
 	};
 
 	struct MeshCmd : DrawCmd
 	{
-		mat4 transform;
+		glm::mat4 transform;
 	};
 
 	struct Shape
@@ -312,13 +313,13 @@ namespace Debug
 	{
 		meshProgram = std::make_shared<ShaderResource>("../projects/GraphicV2/code/basicShader.glsl");
 
-		//InitLine();
+		InitLine();
 		InitBox();
 		InitPlane();
 		InitSphere();
 	}
 
-	void DrawLine(vec3 start, vec3 end, vec4 color, float lineWidth)
+	void DrawLine(glm::vec3 start, glm::vec3 end, glm::vec4 color, float lineWidth)
 	{
 		LineCmd* cmd = new LineCmd();
 
@@ -333,33 +334,33 @@ namespace Debug
 		commands.push(cmd);
 	}
 
-	//void DrawBox(vec3 pos, vec3 rot, vec3 extents, vec4 color, float lineWidth)
-	//{
-	//	MeshCmd* cmd = new MeshCmd();
+	void DrawBox(glm::vec3 pos, glm::vec3 rot, glm::vec3 extents, glm::vec4 color, float lineWidth)
+	{
+		MeshCmd* cmd = new MeshCmd();
 
-	//	cmd->shape = DEBUG_BOX;
-	//	cmd->color = color;
-	//	cmd->lineWidth = lineWidth;
+		cmd->shape = DEBUG_BOX;
+		cmd->color = color;
+		cmd->lineWidth = lineWidth;
+		glm::mat4 rotscale = SetRotation(rot) * glm::scale(extents);
+		cmd->transform = glm::translate(pos) * rotscale;
 
-	//	cmd->transform = translate(pos) * rotationaxis(rot) * scale(extents);
+		commands.push(cmd);
+	}
 
-	//	commands.push(cmd);
-	//}
+	void DrawBox(glm::mat4 transform, glm::vec4 color, float lineWidth)
+	{
+		MeshCmd* cmd = new MeshCmd();
 
-	//void DrawBox(mat4 transform, vec4 color, float lineWidth)
-	//{
-	//	MeshCmd* cmd = new MeshCmd();
+		cmd->shape = DEBUG_BOX;
+		cmd->color = color;
+		cmd->lineWidth = lineWidth;
 
-	//	cmd->shape = DEBUG_BOX;
-	//	cmd->color = color;
-	//	cmd->lineWidth = lineWidth;
+		cmd->transform = transform;
 
-	//	cmd->transform = transform;
+		commands.push(cmd);
+	}
 
-	//	commands.push(cmd);
-	//}
-
-	void DrawSphere(vec3 pos, float radius, vec4 color, float lineWidth)
+	void DrawSphere(glm::vec3 pos, float radius, glm::vec4 color, float lineWidth)
 	{
 		MeshCmd* cmd = new MeshCmd();
 
@@ -367,7 +368,7 @@ namespace Debug
 		cmd->color = color;
 		cmd->lineWidth = lineWidth;
 
-		cmd->transform = translate(pos) * scale(vec3(radius));
+		cmd->transform = glm::translate(pos) * glm::scale(glm::vec3(radius));
 
 		commands.push(cmd);
 	}

@@ -9,14 +9,14 @@ namespace Debug
 
 	void Init();
 
-	void DrawLine(vec3 start, vec3 end, vec4 color, float lineWidth = 1);
+	void DrawLine(glm::vec3 start, glm::vec3 end, glm::vec4 color, float lineWidth = 1);
 
-	void DrawBox(vec3 pos, vec3 rot, vec3 extents, vec4 color, float lineWidth = 1);
-	void DrawBox(mat4 transform, vec4 color, float lineWidth = 1);
+	void DrawBox(glm::vec3 pos, glm::vec3 rot, glm::vec3 extents, glm::vec4 color, float lineWidth = 1);
+	void DrawBox(glm::mat4 transform, glm::vec4 color, float lineWidth = 1);
 
-	void DrawSphere(vec3 pos, float radius, vec4 color, float lineWidth = 1);
+	void DrawSphere(glm::vec3 pos, float radius, glm::vec4 color, float lineWidth = 1);
 
-	void DrawPlane(vec3 pos, vec3 rot, vec2 extents, vec4 color, float lineWidth = 1);
+	void DrawPlane(glm::vec3 pos, glm::vec3 rot, glm::vec2 extents, glm::vec4 color, float lineWidth = 1);
 
 	void ClearQueue();
 

@@ -78,9 +78,9 @@ std::shared_ptr<Model> GLTFLoader::LoadGLTFMeshDataPrimitive()
 
 			data.textures = GetTexture(primAccIndex);
 			data.baseMat = new material::BlinnPhongMat(
-				vec3(1.0f, 1.0f, 1.0f),
-				vec3(1.0f, 1.0f, 1.0f),
-				vec3(1.0f, 1.0f, 1.0f));
+				glm::vec3(1.0f, 1.0f, 1.0f),
+				glm::vec3(1.0f, 1.0f, 1.0f),
+				glm::vec3(1.0f, 1.0f, 1.0f));
 
 			mesh.primitives.push_back(Primitive(&data));
 		}
@@ -222,54 +222,54 @@ std::vector<unsigned int> GLTFLoader::GetIndices(json accessor)
 	return indices;
 }
 
-std::vector<vec2> GLTFLoader::groupFloatsVec2(std::vector<float> floatVec)
+std::vector<glm::vec2> GLTFLoader::groupFloatsVec2(std::vector<float> floatVec)
 {
-	std::vector<vec2> vectors;
+	std::vector<glm::vec2> vectors;
 	for (int i = 0; i < floatVec.size(); i += 2)
 	{
-		vectors.push_back(vec2(floatVec[i], floatVec[i + 1]));
+		vectors.push_back(glm::vec2(floatVec[i], floatVec[i + 1]));
 	}
 
 	return vectors;
 }
 
-std::vector<vec3> GLTFLoader::groupFloatsVec3(std::vector<float>& floatVec)
+std::vector<glm::vec3> GLTFLoader::groupFloatsVec3(std::vector<float>& floatVec)
 {
-	std::vector<vec3> vectors;
+	std::vector<glm::vec3> vectors;
 	for (int i = 0; i < floatVec.size(); i += 3)
-		vectors.push_back(vec3(floatVec[i], floatVec[i+1], floatVec[i+2]));
+		vectors.push_back(glm::vec3(floatVec[i], floatVec[i+1], floatVec[i+2]));
 	return vectors;
 }
 
-std::vector<vec4> GLTFLoader::groupFloatsVec4(std::vector<float> floatVec)
+std::vector<glm::vec4> GLTFLoader::groupFloatsVec4(std::vector<float> floatVec)
 {
-	std::vector<vec4> vectors;
+	std::vector<glm::vec4> vectors;
 	for (int i = 0; i < floatVec.size(); i += 4)
-		vectors.push_back(vec4(floatVec[i], floatVec[i+1], floatVec[i+2], floatVec[i+3]));
+		vectors.push_back(glm::vec4(floatVec[i], floatVec[i+1], floatVec[i+2], floatVec[i+3]));
 	return vectors;
 }
 
-std::vector<vec4> GLTFLoader::CalcTangents(const std::vector<vec3>& positions, const std::vector<unsigned int>& indices, const std::vector<vec2>& UVs)
+std::vector<glm::vec4> GLTFLoader::CalcTangents(const std::vector<glm::vec3>& positions, const std::vector<unsigned int>& indices, const std::vector<glm::vec2>& UVs)
 {
-	std::vector<vec4> tangents(positions.size());
+	std::vector<glm::vec4> tangents(positions.size());
 
 	for(int i = 0; i < indices.size(); i+=3)
 	{
-		vec3 pos0 = positions[indices[i]];
-		vec3 pos1 = positions[indices[i + 1]];
-		vec3 pos2 = positions[indices[i + 2]];
+		glm::vec3 pos0 = positions[indices[i]];
+		glm::vec3 pos1 = positions[indices[i + 1]];
+		glm::vec3 pos2 = positions[indices[i + 2]];
 
-		vec2 deltaUV1 = UVs[indices[i + 1]] - UVs[indices[i]];
-		vec2 deltaUV2 = UVs[indices[i + 2]] - UVs[indices[i]];
+		glm::vec2 deltaUV1 = UVs[indices[i + 1]] - UVs[indices[i]];
+		glm::vec2 deltaUV2 = UVs[indices[i + 2]] - UVs[indices[i]];
 	
-		vec3 edge1 = pos1 - pos0;
-		vec3 edge2 = pos2 - pos0;
+		glm::vec3 edge1 = pos1 - pos0;
+		glm::vec3 edge2 = pos2 - pos0;
 		
 		
 		float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-		vec4 tangent =
-			vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
+		glm::vec4 tangent =
+		glm::vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
 				 f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
 				 f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z),1);
 	

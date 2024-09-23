@@ -6,7 +6,8 @@
 #include <unordered_map>
 #include <string>
 
-#include "core/math/mat4.h"
+//#include "core/math/mat4.h"
+#include "config.h"
 
 class Model;
 struct ObjData;
@@ -29,8 +30,8 @@ private:
 	std::shared_ptr<Model> LoadObj( std::string modelPath, std::string texPath = "");
 	ObjData ParseObj(std::string source, std::string texSource);
 
-	void ReadDataV3(const std::string& line, std::vector<vec3>& out);
-	void ReadDataV2(const std::string& line, std::vector<vec2>& out);
+	void ReadDataV3(const std::string& line, std::vector<glm::vec3>& out);
+	void ReadDataV2(const std::string& line, std::vector<glm::vec2>& out);
 
 
 public:	
@@ -56,13 +57,13 @@ public:
 class GameObject //Graphics node
 {
 private:
-	vec3 position;
-	vec3 scale;
-	vec3 rotation;
+	glm::vec3 position;
+	glm::vec3 scale;
+	glm::vec3 rotation;
 
-	mat4 modelScale;
-	mat4 modelRotation;
-	mat4 modelTranslation;
+	glm::mat4 modelScale;
+	glm::mat4 modelRotation;
+	glm::mat4 modelTranslation;
 
 	std::string name;
 
@@ -70,11 +71,12 @@ private:
 
 public:
 	GameObject() {};
-	GameObject(vec3 position, vec3 rotation, vec3 scale, std::string modelPath, std::string texPath = "");
+	GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath = "");
 
 	void Draw(ShaderResource& program, Object::Camera& cam);
 
-	inline vec3& GetPosition() { return position; }
+	inline glm::vec3& GetPosition() { return position; }
+	inline glm::vec3& GetRotation() { return rotation; }
 	inline std::string GetName() { return name; }
 };
 

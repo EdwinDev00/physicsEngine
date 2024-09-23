@@ -13,6 +13,7 @@ SET(files_core
 	stb/stb.cc
 	gltf.h
 	nlohmann/json.hpp
+	mathLibFunction.h
 	)
 SOURCE_GROUP("core" FILES ${files_core})
 	

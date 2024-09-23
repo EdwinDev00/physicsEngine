@@ -1,29 +1,34 @@
 #include "camera.h"
+#define PI 3.141592653589793238f
 
 namespace Object
 {
 	Camera::Camera()
-		: position(vec3()),
+		: /*position(vec3()),
 		view(mat4()),
 		projection(mat4()),
-		direction(vec3()),
-		upVec(vec3(0,1,0)),
-		rightVec(vec3(1,0,0))
+		direction(vec3()),*/
+		upVec(glm::vec3(0,1,0)),
+		rightVec(glm::vec3(1,0,0))
 	{
 	}
 
 	void Camera::SetPerspective(float FoV, float win_width, float win_height)
 	{
-		projection = perspective(FoV, win_width/win_height,0.1f, 10000);
+		projection = glm::perspectiveFov(FoV, win_width, win_height, 0.1f, 10000.0f);
+		//projection = glm::perspective(FoV, win_width / win_height, 0.1f, 10000.0f);
 		this->projview = projection * view;
 	}
 
 	void Camera::SetOrthographic(float left, float right, float top, float bottom, float near, float far)
 	{
-		projection = orthographic(left,right,top,bottom,near,far);
+		projection = glm::ortho(left,right,top,bottom,near,far);
+		/*projection = glm::orthoLH(left, right, top, bottom, near, far);
+		projection = glm::orthoRH(left, right, top, bottom, near, far);*/
+
 		this->projview = projection * view;
 	}
-	void Camera::Freefly(vec3 input,float moveSpeed,float sensitivity, float delta_mouseX, float delta_mouseY, float deltaTime)
+	void Camera::Freefly(glm::vec3 input,float moveSpeed,float sensitivity, float delta_mouseX, float delta_mouseY, float deltaTime)
 	{
 
 		this->inputDir.x -= delta_mouseX * deltaTime * sensitivity;
@@ -36,7 +41,7 @@ namespace Object
 			this->inputDir.y = -(PI / 2) + 0.1f;
 
 
-		this->direction = normalize(vec3(-cos(inputDir.x) * cos(inputDir.y),
+		this->direction = normalize(glm::vec3(-cos(inputDir.x) * cos(inputDir.y),
 			inputDir.y, sin(inputDir.x) * cos(inputDir.y)));
 
 		//move
@@ -48,7 +53,7 @@ namespace Object
 			//up
 			+ this->upVec * input.y * deltaTime * moveSpeed;
 
-		this->view = lookat(this->position, this->position + this->direction, -this->upVec);
+		this->view = glm::lookAt(this->position, this->position + this->direction, -this->upVec);
 
 		this->projview = projection * view;
 	}
@@ -61,7 +66,7 @@ namespace Object
 		this->position.z = cos(deltaTime * speed) * radius;
 
 
-		this->view = lookat(this->position, vec3(0, 0, 0), this->upVec);
+		this->view = glm::lookAt(this->position, glm::vec3(0, 0, 0), this->upVec);
 		this->projview = projection * view;
 	}
 

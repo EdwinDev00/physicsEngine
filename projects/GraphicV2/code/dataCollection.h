@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-#include "core/math/mat4.h"
+#include "config.h"
 
 #include "texture.h"
 #include "vertexArray.h"
@@ -20,10 +20,10 @@ namespace material
 
 struct Vertex
 {
-	vec3 position;
-	vec2 UV;
-	vec3 normal;
-	vec4 tangent;
+	glm::vec3 position;
+	glm::vec2 UV;
+	glm::vec3 normal;
+	glm::vec4 tangent;
 
 	bool operator ==(const Vertex& rhs)
 	{
@@ -35,10 +35,10 @@ struct Vertex
 
 struct PrimitiveData
 {
-	std::vector<vec3> positions;
-	std::vector<vec2> texUVs;
-	std::vector<vec3> normals;
-	std::vector<vec4> tangents;
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec2> texUVs;
+	std::vector<glm::vec3> normals;
+	std::vector<glm::vec4> tangents;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 	material::BaseMaterial* baseMat;

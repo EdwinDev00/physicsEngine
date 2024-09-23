@@ -5,6 +5,7 @@
 #include "gl/glew.h"
 #include "GLFW/glfw3.h"
 
+
 #include "camera.h"
 #include "light.h"
 
@@ -21,9 +22,9 @@ namespace scene
 		//Projection matrix ratio: 16:9 //Model view proj matrix
 
 		cam = new Object::Camera();
-		cam->Setpos(vec3(0, 0, 0)); 
+		cam->Setpos(glm::vec3(0, 0, 0));
 		cam->SetPerspective(30, 1920, 1080);
-		cam->SetView(lookat(cam->GetPosition(), vec3(0, 0, 0), cam->GetUP()));
+		cam->SetView(glm::lookAt(cam->GetPosition(), glm::vec3(0, 0, 0), cam->GetUP()));
 
 		SetDimension(1920, 1080);
 		gBuffer = std::make_shared<GBuffer>(windowDimension.x, windowDimension.y);
@@ -33,20 +34,11 @@ namespace scene
 		quad = std::make_shared<Quad>();
 
 		//Obj
-		GameObject* Sphere = new GameObject(vec3(3, 1, 1), vec3(0, 0, 0), vec3(1, 1, 1), "../projects/GraphicV2/asset/sphere.obj", "../projects/GraphicV2/texture/tile.png");
-		GameObject* plane = new GameObject(vec3(0, -.25f, 1), vec3(0, 0, 0), vec3(6, 6, 6), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
-
+		GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(6, 6, 6), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
 		//GLTF
-		GameObject* CubeGLTF = new GameObject(vec3(2, 1, -2), vec3(0, 0, 0), vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
-		//GameObject* EmbeddedHelm = new GameObject(vec3(-1, 1, -3), vec3(), vec3(1, 1, 1), "../projects/GraphicV2/asset/DamagedHelmetEmbedded.gltf");
-		//GameObject* Sponza = new GameObject(vec3(0, 0, 0), vec3(), vec3(0.05f, 0.05f, 0.05f), "../projects/GraphicV2/asset/Sponza/Sponza.gltf");
-
-		objects.push_back(Sphere);
+		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 		objects.push_back(plane);
-
 		objects.push_back(CubeGLTF);
-		//objects.push_back(EmbeddedHelm);
-		//objects.push_back(Sponza);
 
 		shader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/gBuffer.glsl");
 		quadShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/quad.glsl");
@@ -56,11 +48,11 @@ namespace scene
 		for(int i = 0; i < 2; i++)
 		{
 			float rnd = (rand() % 5) / 5.0f;
-			PointLight* pLight1 = new PointLight(vec3(0, 3, 0), vec3(rnd, 1, rnd), 1);
+			PointLight* pLight1 = new PointLight(glm::vec3(0, 3, 0), glm::vec3(rnd, 1, rnd), 1);
 		}
  
 		//Directional light (sun)
-		Sun = new DirectionalLight(vec3(0, -1, 0), vec3(.5f, .5f, .5f), 0.2f);
+		Sun = new DirectionalLight(glm::vec3(0, -1, 0), glm::vec3(.5f, .5f, .5f), 0.2f);
 
 		Debug::Init();
 	}
@@ -95,7 +87,7 @@ namespace scene
 			up = 1;
 
 		if (inputManager->mouse.held[input::MouseButton::right])
-			cam->Freefly(vec3(right, up, forward),10,1, inputManager->mouse.dx, inputManager->mouse.dy, deltaTime);	
+			cam->Freefly(glm::vec3(right, up, forward),10,1, inputManager->mouse.dx, inputManager->mouse.dy, deltaTime);
 	}
 
 	void scene::SceneGLTF::OnRender()
@@ -132,7 +124,7 @@ namespace scene
 	
 		glClear(GL_COLOR_BUFFER_BIT);
 		glDepthFunc(GL_GREATER);
-		lightShader->SetUniformVec2("resolution", vec2(windowDimension.x, windowDimension.y));
+		lightShader->SetUniformVec2("resolution", glm::vec2(windowDimension.x, windowDimension.y));
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
 		glBlendFunc(GL_ONE, GL_ONE);
@@ -188,6 +180,8 @@ namespace scene
 
 		ImGui::ListBoxFooter();
 		ImGui::DragFloat3("Position", &objects[inspectorSelected]->GetPosition()[0],0.05f);
+		ImGui::DragFloat3("Rotation", &objects[inspectorSelected]->GetRotation()[0], 0.05f);
+
 
 		ImGui::SliderInt("Current Light", &LightObjectInt, 0, totalLightCount);
 		ImGui::DragFloat3("Light Position", &LightManager::Get()->GetLight(LightObjectInt)->position[0]);

@@ -3,9 +3,9 @@
 #include <vector>
 #include <string>
 
-#include "core/math/vec3.h"
-#include "core/math/vec4.h"
-#include "core/math/mat4.h"
+//#include "core/math/vec3.h"
+//#include "core/math/vec4.h"
+//#include "core/math/mat4.h"
 
 #include "shaderResource.h"
 #include "Debug.h"
@@ -40,8 +40,8 @@ class PointLight : public BaseLight
 private:
 	friend class scene::SceneGLTF; 
 
-	vec3 position;
-	vec3 color; //Default white
+	glm::vec3 position;
+	glm::vec3 color; //Default white
 	float intensity;
 	float intensityMax; //light max
 
@@ -66,7 +66,7 @@ private:
 	void Orbit(float totalTime);
 public:
 	PointLight(){};
-	PointLight(vec3 pos, vec3 color, float intensity);
+	PointLight(glm::vec3 pos, glm::vec3 color, float intensity);
 	~PointLight() { 
 		
 	};
@@ -74,7 +74,7 @@ public:
 	void Update(ShaderResource& program, Object::Camera& cam) override; //Update the light source;
 	void DisableLight(ShaderResource& program) override; //Disable the light source;
 
-	inline vec3 GetPos() { return position; }
+	inline glm::vec3 GetPos() { return position; }
 	inline float GetRadius() { return radius; }
 
 };
@@ -85,21 +85,21 @@ class DirectionalLight : public BaseLight //Represent the light
 private:
 	friend class scene::SceneGLTF;
 
-	vec3 direction;
-	vec3 color; //Default white
+	glm::vec3 direction;
+	glm::vec3 color; //Default white
 	float intensity = 0.2f;
 
 	int lightID; //individual need to have its unique id
 
 public:
 	DirectionalLight() {};
-	DirectionalLight(vec3 dir, vec3 color, float intensity);
+	DirectionalLight(glm::vec3 dir, glm::vec3 color, float intensity);
 	~DirectionalLight() {};
 
 	void Update(ShaderResource& program, Object::Camera& cam) override; //Update the light source;
 	void DisableLight(ShaderResource& program) override; //Disable the light source;
 
-	inline vec3 GetDirection() { return direction; }
+	inline glm::vec3 GetDirection() { return direction; }
 };
 
 
@@ -130,7 +130,7 @@ public:
 		for (int i = 0; i < pLights.size(); i++)
 		{
 			pLights[i]->Update(program, cam);
-			Debug::DrawSphere(pLights[i]->GetPos(), pLights[i]->GetRadius(), vec4(0, 1, 0, 1));
+			Debug::DrawSphere(pLights[i]->GetPos(), pLights[i]->GetRadius(), glm::vec4(0, 1, 0, 1));
 		}
 	};
 

@@ -3,7 +3,7 @@
 #include "texture.h"
 
 
-material::BlinnPhongMat::BlinnPhongMat(vec3 ambientV, vec3 diffuseV, vec3 specularV, float shininess)
+material::BlinnPhongMat::BlinnPhongMat(glm::vec3 ambientV, glm::vec3 diffuseV, glm::vec3 specularV, float shininess)
 	: ambient(ambientV), diffuse(diffuseV), specular(specularV), shininess(shininess)
 {
 }
