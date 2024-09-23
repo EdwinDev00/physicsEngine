@@ -1,0 +1,54 @@
+vec3 CalcDirLight(DirLight light, vec3 norm, vec3 viewDir)
+{
+	float ambientStrength = 0.1f;
+    float shininess = 32;
+
+	vec3 lightDir = normalize(-light.direction);
+    //defuse shading
+    float diffuseCoefficient = max(dot(lightDir,norm), 0.0f);
+    //specular shading
+    vec3 reflectionDir = reflect(-lightDir,norm);
+    float specularAmount =  pow(max(dot(viewDir,reflectionDir),0.0f), shininess);
+    
+    vec3 ambient =  ambientStrength * light.color;
+    vec3 diffuse = diffuseCoefficient * light.color * light.intensity;
+    vec3 specular = specularAmount * light.color;
+    
+    return (ambient + diffuse + specular);
+}
+
+vec3 CalcPointLight(PointLight light, vec3 norm, vec3 crntPos, vec3 viewDir)
+{
+	//Blin Phong , point light works (exchange the variables)
+	float shininess = 32;
+
+	//Ambient lighting
+	float ambientStrength = 0.1f;
+	vec3 ambient = ambientStrength * u_lightColor;
+
+	//Diffuse
+	vec3 normal = normalize(Normal);
+	vec3 lightDir = normalize(u_lightPos - crntPos); 
+	float diffuseCoefficient = max(dot(lightDir,normal), 0.0f);
+	float distance = length(u_lightPos - crntPos);
+	vec3 diffuse = (diffuseCoefficient * u_lightColor) / (distance * distance);
+	
+
+	//Specular light
+	float specularStrength = 1;
+	vec3 viewDir = normalize(camPos - crntPos);
+	//vec3 reflectionDir = reflect(-lightDir, normal); //phong lighting
+
+	vec3 halfwayDir = normalize(lightDir + viewDir); 
+
+	float specularAmount = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+	vec3 specular = specularAmount * u_lightColor / (distance * distance);
+
+
+	float attenuation = u_lightIntensity / (u_lightConstant + u_lightLinear * distance + 
+                u_lightQuadratic * (distance * distance));
+	vec3 light = ( ambient + diffuse + specular) * attenuation;
+
+
+	return light;
+}
