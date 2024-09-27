@@ -117,3 +117,113 @@ public:
 
 	void SimpleDraw();
 };
+
+
+struct Triangles
+{
+	std::vector<glm::vec3> vertices;
+	glm::vec3 normal;
+
+	Triangles() : normal(0,0,0){}
+	Triangles(const std::vector<glm::vec3>& group, glm::vec3& groupNormal) : vertices(group), normal(groupNormal)
+	{
+
+	}
+};
+
+//ADD RAY CLASS
+class Ray
+{
+public:
+	glm::vec3 origin; //beginning of the ray position
+	glm::vec3 direction; // ray heading direction (magnitude)
+
+	Ray(){}
+	Ray(const glm::vec3& b, const glm::vec3& dir) : origin(b), direction(dir){}
+};
+
+//ADD AABB CLASS (attach it to the gameobject)
+//MAKE IT APPEAR DEBUG BOX ONTO THE OBJECT 
+class AABB 
+{
+private:
+	glm::vec3 originalMinExtent, originalMaxExtent;
+
+public:
+	glm::vec3 min; //minimum corner of the AABB
+	glm::vec3 max; //maximum corner of the AABB
+	glm::vec3 center; //Center of the AABB
+	glm::vec3 extend;
+
+
+	AABB() : min(0,0,0), max(1,1,1), originalMinExtent(0,0,0), originalMaxExtent(1,1,1), center((min + max) / 2.0f), extend (glm::abs(max - min)) {}
+	//AABB(const glm::vec3& minC, const glm::vec3& maxC) : min(minC),max(maxC){}
+
+	AABB(const std::shared_ptr<Model>& model)
+	{
+		//Loop through all the meshes in the model
+		float minX = 0, minY = 0, minZ = 0,
+			maxX = 0, maxY = 0, maxZ = 0;
+
+		for (auto& mesh : model->meshes)
+			for (auto& primitive : mesh.primitives)
+				for (auto& vertices : primitive.vertices)
+				{
+					minX = std::fmin(minX, vertices.position.x);
+					minY = std::fmin(minY, vertices.position.y);
+					minZ = std::fmin(minZ, vertices.position.z);
+
+					maxX = std::fmax(maxX, vertices.position.x);
+					maxY = std::fmax(maxY, vertices.position.y);
+					maxZ = std::fmax(maxZ, vertices.position.z);
+				}
+		min = glm::vec3(minX, minY, minZ);
+		max = glm::vec3(maxX, maxY, maxZ);
+		originalMinExtent = min;
+		originalMaxExtent = max;
+		center = (min + max) / 2.0f;
+		extend = glm::abs(max - min);
+	}
+
+	//returns center of the AABB
+	glm::vec3 GetPosition() const { return center; }
+
+	//returns half extents (size of the box)
+	glm::vec3 GetExtents() const { return extend; }
+	
+	void UpdateBounds(const glm::mat4& transform)
+	{		
+		glm::vec3 originalCorners[8] = {
+			glm::vec3(originalMinExtent.x, originalMinExtent.y, originalMinExtent.z),
+			glm::vec3(originalMinExtent.x, originalMinExtent.y, originalMaxExtent.z),
+			glm::vec3(originalMinExtent.x, originalMaxExtent.y, originalMinExtent.z),
+			glm::vec3(originalMinExtent.x, originalMaxExtent.y, originalMaxExtent.z),
+			glm::vec3(originalMaxExtent.x, originalMinExtent.y, originalMinExtent.z),
+			glm::vec3(originalMaxExtent.x, originalMinExtent.y, originalMaxExtent.z),
+			glm::vec3(originalMaxExtent.x, originalMaxExtent.y, originalMinExtent.z),
+			glm::vec3(originalMaxExtent.x, originalMaxExtent.y, originalMaxExtent.z)
+		};
+
+		glm::vec3 newMin(FLT_MAX), newMax(-FLT_MAX);
+
+		// Transform all 8 corners and find the new bounds
+		for (int i = 0; i < 8; ++i) {
+			glm::vec3 transformedCorner = glm::vec3(transform * glm::vec4(originalCorners[i], 1.0f));
+			newMin = glm::min(newMin, transformedCorner);
+			newMax = glm::max(newMax, transformedCorner);
+		}
+
+		min = newMin;
+		max = newMax;
+		center = (max + min) / 2.0f;
+		extend = glm::abs(max - min);
+	}
+
+	//Function for checking intersection with another AABB
+	bool Intersects(const AABB& other) const
+	{
+		return ( min.x <= other.min.x && max.x >= other.max.x) &&
+			   ( min.y <= other.min.y && max.y >= other.max.y) &&
+			   ( min.z <= other.min.z && max.z >= other.max.z);
+	}
+};

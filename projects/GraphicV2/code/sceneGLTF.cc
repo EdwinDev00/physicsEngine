@@ -14,17 +14,47 @@
 #include "gBuffer.h"
 
 #include "Debug.h"
+#include "physicsEngine.h"
+#include "inlineFunc.h"
+
+
+	glm::vec3 hitPoint; //global for debugging otherwise move it back inside left mouse
+
+
 
 namespace scene
 {
+	inline std::shared_ptr<Ray> SceneGLTF::CreateRayFromMouse()
+	{
+		input::InputHandler* inputManager = input::InputHandler::Instance();
+		float x = inputManager->mouse.nx;
+		float y = inputManager->mouse.ny;
+		glm::vec2 mouseNDC(x, y);
+
+		glm::mat4 inverseProj = glm::inverse(cam->GetProjMat());
+		glm::mat4 inverseView = glm::inverse(cam->GetViewMat());
+
+		//Convert NDC to world space coordinate
+		glm::vec4 rayClip = glm::vec4(mouseNDC.x, -mouseNDC.y, -1, 1);
+		glm::vec4 rayEye = inverseProj * rayClip;
+		rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+
+		glm::vec4 rayWorld = inverseView * rayEye;
+		glm::vec3 rayDir = glm::normalize(glm::vec3(rayWorld));
+
+		glm::vec3 rayOrigin = cam->GetPosition();
+		return std::make_shared<Ray>(rayOrigin, rayDir);
+	}
+
 	scene::SceneGLTF::SceneGLTF()
 	{
 		//Projection matrix ratio: 16:9 //Model view proj matrix
+		phyEngine = new PhysicsEngine();
 
 		cam = new Object::Camera();
-		cam->Setpos(glm::vec3(0, 0, 0));
+		cam->Setpos(glm::vec3(0, 5, 0));
 		cam->SetPerspective(30, 1920, 1080);
-		cam->SetView(glm::lookAt(cam->GetPosition(), glm::vec3(0, 0, 0), cam->GetUP()));
+		cam->SetView(glm::lookAt(cam->GetPosition(), glm::vec3(0, -1, 0), cam->GetUP()));
 
 		SetDimension(1920, 1080);
 		gBuffer = std::make_shared<GBuffer>(windowDimension.x, windowDimension.y);
@@ -34,25 +64,30 @@ namespace scene
 		quad = std::make_shared<Quad>();
 
 		//Obj
-		GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(6, 6, 6), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
+		GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(2, 2, 2), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
 		//GLTF
-		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
-		objects.push_back(plane);
-		objects.push_back(CubeGLTF);
+		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 1, -2), glm::vec3(0, 0, 0), glm::vec3(2, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
+
+		//testing	
+		phyEngine->AddObject(plane);
+		phyEngine->AddObject(CubeGLTF);
 
 		shader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/gBuffer.glsl");
 		quadShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/quad.glsl");
 		lightShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/LightPass.glsl");
 
 
-		for(int i = 0; i < 2; i++)
-		{
-			float rnd = (rand() % 5) / 5.0f;
-			PointLight* pLight1 = new PointLight(glm::vec3(0, 3, 0), glm::vec3(rnd, 1, rnd), 1);
-		}
+		//for(int i = 0; i < 2; i++) //don't need it for making physics
+		//{
+		//	float rnd = (rand() % 5) / 5.0f;
+		//	PointLight* pLight1 = new PointLight(glm::vec3(0, 3, 0), glm::vec3(rnd, 1, rnd), 1);
+		//}
  
 		//Directional light (sun)
-		Sun = new DirectionalLight(glm::vec3(0, -1, 0), glm::vec3(.5f, .5f, .5f), 0.2f);
+		Sun = new DirectionalLight(glm::vec3(0, -1, 0), glm::vec3(.5f, .5f, .5f),1.0f);
+
+		//testing the ray to spawn
+		ray = std::make_shared<Ray>(cam->GetPosition(), cam->GetDirection()); //Just for debug ray (change it back to local when works)
 
 		Debug::Init();
 	}
@@ -62,14 +97,16 @@ namespace scene
 		//Deallocate the memory
 		LightManager::Get()->Clear();
 		delete cam;
-		for (auto& obj : objects)
-			delete obj;
-		objects.resize(0);
+		phyEngine->DeleteObjectData();
+		delete phyEngine;
+		phyEngine = nullptr;
 		cam = nullptr;
 	}
 
 	void scene::SceneGLTF::OnUpdate(float deltaTime)
 	{
+		phyEngine->Update();
+
 		input::InputHandler* inputManager = input::InputHandler::Instance();
 		// Read input
 		float right = 0, up = 0, forward = 0;
@@ -88,6 +125,29 @@ namespace scene
 
 		if (inputManager->mouse.held[input::MouseButton::right])
 			cam->Freefly(glm::vec3(right, up, forward),10,1, inputManager->mouse.dx, inputManager->mouse.dy, deltaTime);
+
+		if (inputManager->mouse.pressed[input::MouseButton::left])
+		{
+			ray = CreateRayFromMouse();
+			
+			/*GameObject**/ hitObject = phyEngine->Raycast(*ray,hitPoint);
+
+			if(hitObject)
+			{
+				std::cout << hitObject->GetName() << "\n";
+			}
+		}
+		
+		//Debug only RAY 
+		glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
+		if(hitObject)
+		{
+			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
+			Debug::DrawBox(ray->origin + ray->direction * hitPoint, glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0, 1, 0, 1), 2);
+		}
+		else
+			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
+
 	}
 
 	void scene::SceneGLTF::OnRender()
@@ -106,8 +166,9 @@ namespace scene
 		glDepthFunc(GL_LESS);
 		
 		//Render out objects
-		for (auto& obj : objects)
+		for (auto& obj : phyEngine->objects)
 			obj->Draw(*shader, *cam);
+		
 
 		//LightPass
 		glCullFace(GL_FRONT);
@@ -154,7 +215,7 @@ namespace scene
 			Debug::RenderDebug(*cam);
 		else
 			Debug::ClearQueue();
-		
+
 #pragma endregion
 
 	}
@@ -170,17 +231,19 @@ namespace scene
 		ImGui::Begin("Scene ObjectLight", &show, ImGuiWindowFlags_NoSavedSettings);
 		
 		ImGui::ListBoxHeader("Objects");
-		for (int n = 0; n < objects.size(); n++)
+		for (int n = 0; n < phyEngine->objects.size(); n++)
 		{
 			const bool selected = (inspectorSelected == n);
 
-			if (ImGui::Selectable(objects[n]->GetName().c_str(), selected))
+			if (ImGui::Selectable(phyEngine->objects[n]->GetName().c_str(), selected))
 				inspectorSelected = n;
 		}
 
 		ImGui::ListBoxFooter();
-		ImGui::DragFloat3("Position", &objects[inspectorSelected]->GetPosition()[0],0.05f);
-		ImGui::DragFloat3("Rotation", &objects[inspectorSelected]->GetRotation()[0], 0.05f);
+		ImGui::DragFloat3("Position", &phyEngine->objects[inspectorSelected]->GetPosition()[0],0.05f);
+		ImGui::DragFloat3("Rotation", &phyEngine->objects[inspectorSelected]->GetRotation()[0], 0.05f);
+		ImGui::DragFloat3("Scale", &phyEngine->objects[inspectorSelected]->GetScale()[0], 0.05f);
+
 
 
 		ImGui::SliderInt("Current Light", &LightObjectInt, 0, totalLightCount);
@@ -189,6 +252,7 @@ namespace scene
 		ImGui::DragFloat("Light intensity", &LightManager::Get()->GetLight(LightObjectInt)->intensity,0.1f);
 
 		ImGui::Checkbox("Enable Debug Draw", &RenderDebug);
+
 		ImGui::Checkbox("OrbitLight", &LightManager::Get()->GetLight(LightObjectInt)->bOrbit);
 		
 		ImGui::SetWindowPos(ImVec2(0, 100));

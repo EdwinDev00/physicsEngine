@@ -8,7 +8,10 @@
 
 //#include "core/math/mat4.h"
 #include "config.h"
+#include "dataCollection.h"
+#include "Debug.h"
 
+class AABB;
 class Model;
 struct ObjData;
 
@@ -64,20 +67,36 @@ private:
 	glm::mat4 modelScale;
 	glm::mat4 modelRotation;
 	glm::mat4 modelTranslation;
-
 	std::string name;
 
 	std::shared_ptr<Model> modelObject;
 
+	std::vector<Triangles> triangles;
+	
+	//AABB bounding
 public:
-	GameObject() {};
+	glm::mat4 transform;
+	AABB boundingbox;
+	glm::vec3 velocity;
+	glm::vec3 acceleration;
+	float mass;
+
+	GameObject(){};
 	GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath = "");
 
 	void Draw(ShaderResource& program, Object::Camera& cam);
+	void OnUpdate()
+	{
+		//Update the AABB bounds according to the changes (translation (position) , scale)
+		boundingbox.UpdateBounds(transform);
+		Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), glm::vec4(0, 0, 1, 1), 4.0f);
+	}
+
+	bool RayMeshIntersection(const Ray& ray, glm::vec3& hitpoint);
 
 	inline glm::vec3& GetPosition() { return position; }
 	inline glm::vec3& GetRotation() { return rotation; }
+	inline glm::vec3& GetScale() { return scale; }
+
 	inline std::string GetName() { return name; }
 };
-
-//std::shared_ptr<Model> CreateCube(float width, float height, float depth);

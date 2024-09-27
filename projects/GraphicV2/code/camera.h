@@ -4,6 +4,8 @@
 //#include "core/math/mat4.h"
 //#include "core/math/vec3.h"
 
+class Ray;
+
 namespace Object
 {
 	class Camera
@@ -38,6 +40,9 @@ namespace Object
 
 		inline glm::vec3 GetPosition() const  { return position; }
 		inline glm::mat4 GetProjView() const { return projview; }
+		inline glm::mat4 GetProjMat() const { return projection; }
+		inline glm::mat4 GetViewMat() const { return view; }
+
 		inline glm::vec3 GetDirection() const { return direction; }
 		inline glm::vec3 GetUP() const { return upVec; }
 	};

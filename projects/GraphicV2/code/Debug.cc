@@ -50,6 +50,8 @@ namespace Debug
 
 	void InitLine()
 	{
+		lineProgram = std::make_shared<ShaderResource>("../projects/GraphicV2/code/debuggLine.glsl");	
+
 		glGenVertexArrays(1, &shape[DEBUG_LINE].vao);
 		glBindVertexArray(shape[DEBUG_LINE].vao);
 
@@ -397,27 +399,27 @@ namespace Debug
 		}
 	}
 
-	void RenderLine(DrawCmd* cmd)
+	void RenderLine(DrawCmd* cmd, const Object::Camera& cam)
 	{
-		//LineCmd* lineCmd = (LineCmd*)cmd;
+		LineCmd* lineCmd = (LineCmd*)cmd;
 
-		//glUseProgram(lineProgram);
-		//glBindVertexArray(shape[DEBUG_LINE].vao);
+		lineProgram->Bind();
+		glBindVertexArray(shape[DEBUG_LINE].vao);
 
-		//vec4 v0 = vec4(lineCmd->start.x, lineCmd->start.y, lineCmd->start.z, 1);
-		//vec4 v1 = vec4(lineCmd->end.x, lineCmd->end.y, lineCmd->end.z, 1);
-		//
-		//UniformMat4("projView", Camera::GetCamera(CAMERA_MAIN)->projView, lineProgram);
-		//UniformVec4("v0pos", v0, lineProgram);
-		//UniformVec4("v1pos", v1, lineProgram);
-		//UniformVec4("color", lineCmd->color, lineProgram);
+		glm::vec4 v0 = glm::vec4(lineCmd->start.x, lineCmd->start.y, lineCmd->start.z, 1);
+		glm::vec4 v1 = glm::vec4(lineCmd->end.x, lineCmd->end.y, lineCmd->end.z, 1);
+		
+		lineProgram->SetUniformMat4f("projView", cam.GetProjView());
+		lineProgram->SetUniformVec4("v0pos", v0);
+		lineProgram->SetUniformVec4("v1pos", v1);
+		lineProgram->SetUniformVec4("color", lineCmd->color);
 
-		//glPolygonMode(GL_FRONT, GL_LINE);
-		//glLineWidth(lineCmd->lineWidth);
+		glPolygonMode(GL_FRONT, GL_LINE);
+		glLineWidth(lineCmd->lineWidth);
 
-		//glDrawArrays(GL_LINES, 0, 2);
+		glDrawArrays(GL_LINES, 0, 2);
 
-		//glPolygonMode(GL_FRONT, GL_FILL);
+		glPolygonMode(GL_FRONT, GL_FILL);
 	}
 
 	void RenderMesh(DrawCmd* cmd, const Object::Camera& cam)
@@ -447,11 +449,9 @@ namespace Debug
 			commands.pop();
 
 			if (cmd->shape == DEBUG_LINE)
-				RenderLine(cmd);
+				RenderLine(cmd, cam);
 			else
 				RenderMesh(cmd,cam);
-			
-			
 
 			delete cmd;
 		}

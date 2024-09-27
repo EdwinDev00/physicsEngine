@@ -2,7 +2,6 @@
 
 #include "scene.h"
 #include <memory>
-#include "core/math/mat4.h"
 
 namespace Object
 {
@@ -16,6 +15,9 @@ class Quad;
 class ShaderResource;
 class DirectionalLight;
 
+class PhysicsEngine;
+class Ray;
+
 namespace scene
 {
 	class SceneGLTF : public Scene
@@ -27,14 +29,23 @@ namespace scene
 		void OnUpdate(float deltaTime) override;
 		void OnRender() override;
 		void OnImGUIRender() override;
+
+		std::shared_ptr<Ray> CreateRayFromMouse(); //return it back to Ray when everything works
+		
+		//look at the ray direction debug 
+		std::shared_ptr<Ray> ray;
+		GameObject* hitObject = nullptr; //End refactor it to be local variable
+
 	private:
 
 		std::shared_ptr<ShaderResource> shader;
 		std::shared_ptr<ShaderResource> quadShader;
 		std::shared_ptr<ShaderResource> lightShader;
 		DirectionalLight* Sun;
-
+		
 		bool RenderDebug = false;
+
+		PhysicsEngine* phyEngine;
 		std::vector<GameObject*> objects; //list of all the object in the current scene
 		Object::Camera* cam;
 
@@ -44,5 +55,6 @@ namespace scene
 		std::shared_ptr<Quad> quad;
 	
 		int inspectorSelected = 0; //ImGUI selector
+
 	};
 }

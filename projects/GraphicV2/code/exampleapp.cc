@@ -102,10 +102,11 @@ void
 ExampleApp::Run()
 {
 	//Scenes
-	sceneMenu = new scene::SceneMenu(currentScene);
-	currentScene = sceneMenu;
+	//sceneMenu = new scene::SceneMenu(currentScene);
+	//currentScene = sceneMenu;
+	currentScene = new scene::SceneGLTF();
 
-	sceneMenu->RegisterScene<scene::SceneGLTF>("Object GLTF");
+	//sceneMenu->RegisterScene<scene::SceneGLTF>("Object GLTF");
 
 	this->window->SetUiRender([this]()
 	{
