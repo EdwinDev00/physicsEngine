@@ -80,16 +80,33 @@ public:
 	glm::vec3 velocity;
 	glm::vec3 acceleration;
 	float mass;
+	glm::vec3 angularVelocity;
+	glm::vec3 angularAcceleration;
+	glm::mat3 inertiaTensorInWorld;
+
+	//DEBUG COLOR (Change when collision is detected)
+	glm::vec4 debugC = glm::vec4(0, 0, 1, 1);
 
 	GameObject(){};
 	GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath = "");
 
 	void Draw(ShaderResource& program, Object::Camera& cam);
-	void OnUpdate()
+	void OnUpdate(float deltaTime)
 	{
+		//DAMPING
+		float linearDamping = 1.0f; // slow down velocity over time
+		float angularDamping = 1.0f; // slow down angular velocity over time
+		velocity += acceleration * deltaTime; //Gravity 
+		position += velocity * deltaTime;
+		velocity *= linearDamping;
+		acceleration = glm::vec3(0.0f); // reset acceleration for next frame (forces are applied per frame)
+
+		ApplyRotation(angularVelocity * deltaTime);
+		angularVelocity *= angularDamping;
+
 		//Update the AABB bounds according to the changes (translation (position) , scale)
 		boundingbox.UpdateBounds(transform);
-		Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), glm::vec4(0, 0, 1, 1), 4.0f);
+		Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), debugC, 4.0f);
 	}
 
 	bool RayMeshIntersection(const Ray& ray, glm::vec3& hitpoint);
@@ -97,6 +114,50 @@ public:
 	inline glm::vec3& GetPosition() { return position; }
 	inline glm::vec3& GetRotation() { return rotation; }
 	inline glm::vec3& GetScale() { return scale; }
-
 	inline std::string GetName() { return name; }
+
+	inline const std::vector<Triangles>& GetTriangles() const { return triangles; }
+
+	glm::vec3 CalculateInertiaTensor() const
+	{
+		glm::vec3 extends = boundingbox.GetExtents();
+		float w = extends.x; float h = extends.y; float d = extends.z;
+
+		//Inertia tensor (moment of inertia for cuboid)
+		return glm::vec3
+		(
+			(1.0f / 12.0f) * mass * (h * h + d * d), // Ix
+			(1.0f / 12.0f) * mass * (w * w + d * d), // Iy
+			(1.0f / 12.0f) * mass * (w * w + h * h)	 // Iz
+		);
+	}
+
+private:
+	glm::mat4 CalculateInertiaTensorMat() const
+	{
+		glm::vec3 extends = boundingbox.getOriginalExtend();
+		float w = extends.x; float h = extends.y; float d = extends.z;
+
+		//Inertia tensor (moment of inertia for cuboid)
+		//OPTIMIZE: COMPUTE IN CONSTRUCTOR (PROBLEM: IF RUNTIME SCALE WRONG NEED UPDATE + MASS UPDATE (IMPORTANT!!))
+		return 
+		glm::inverse(glm::mat4
+		(
+			(1.0f / 12.0f) * mass * (h * h + d * d),0,0,0, // Ix
+			0,(1.0f / 12.0f) * mass * (w * w + d * d),0,0, // Iy
+			0,0,(1.0f / 12.0f) * mass * (w * w + h * h),0, // Iz
+			0,0,0,1											
+		));
+	}
+
+	void ApplyRotation(const glm::vec3& angularDisplacement)
+	{
+		inertiaTensorInWorld = modelRotation * CalculateInertiaTensorMat() * glm::transpose(modelRotation);
+		glm::quat orientation(modelRotation);
+		glm::quat spin(0,angularDisplacement);
+		orientation += spin * orientation * 0.5f;
+		orientation = glm::normalize(orientation);
+		modelRotation = glm::mat4(orientation);
+		transform = modelTranslation * modelRotation * modelScale;
+	}
 };

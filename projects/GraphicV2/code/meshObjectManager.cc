@@ -113,13 +113,14 @@ void MeshObject::ReadDataV2(const std::string& line, std::vector<glm::vec2>& out
 #pragma region GAMEOBJECT
 
 GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath)
-	: position(position), rotation(rotation), scale(scale)
+	: position(position), rotation(rotation), scale(scale), velocity(glm::vec3(0.0f)), acceleration(glm::vec3(0.0f)), mass(0), angularVelocity(glm::vec3(0.0f)),
+	  angularAcceleration(glm::vec3(0.0f)), modelRotation(glm::identity<glm::mat4>())
 {
-	name = modelPath;
+	static int count;
+	name = modelPath + std::to_string(count++);
 	modelObject = MeshObject::Get()->LoadModel(modelPath, texPath);
 
-
-	//ERROR: CHECK THE TRIANGLE GROUP (TRIAGNELE INTERSECTION FAILURE)
+	//Store each mesh triangle group
 	std::vector<glm::vec3> triangleGroup(3);
 	glm::vec3 triangleNormal; 
 	for(auto& mesh : modelObject->meshes)
@@ -150,6 +151,13 @@ GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, 
 
 	//set the aabb bounds exactly like the modeled size (include matching in scale)
 	boundingbox = AABB(modelObject);
+
+	//Calculate the object's volume from the obj AABB
+	glm::vec3 extent = boundingbox.GetExtents();
+	float volume = extent.x * extent.y * extent.z; //AABB Volume
+
+	// Estimate the mass based on the volume (future can also define the density)
+	mass = volume * 5.0f; //Assuming constant density for simplicity (density set to 5); 
 }
 
 void GameObject::Draw(ShaderResource& program, Object::Camera& cam) 
@@ -157,7 +165,7 @@ void GameObject::Draw(ShaderResource& program, Object::Camera& cam)
 	/*modelRotation = glm::rotationx(rotation.x) *
 		rotationy(rotation.y) *
 		rotationz(rotation.z);*/
-	modelRotation = SetRotation(rotation);
+	//modelRotation = SetRotation(rotation);
 
 	modelScale = glm::mat4
 	   (glm::vec4(scale.x, 0, 0, 0),
@@ -246,7 +254,7 @@ bool GameObject::RayMeshIntersection(const Ray& ray, glm::vec3& hitpoint)
 		}
 	}
 	
-	hitpoint = glm::vec3(closestHit); // store the closest hit point
+	hitpoint = ray.origin + ray.direction * closestHit; // store the closest hit point
 	return hit;
 }
 #pragma endregion

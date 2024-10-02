@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <array>
 
 #include "config.h"
 
@@ -155,7 +156,6 @@ public:
 	glm::vec3 center; //Center of the AABB
 	glm::vec3 extend;
 
-
 	AABB() : min(0,0,0), max(1,1,1), originalMinExtent(0,0,0), originalMaxExtent(1,1,1), center((min + max) / 2.0f), extend (glm::abs(max - min)) {}
 	//AABB(const glm::vec3& minC, const glm::vec3& maxC) : min(minC),max(maxC){}
 
@@ -190,6 +190,7 @@ public:
 
 	//returns half extents (size of the box)
 	glm::vec3 GetExtents() const { return extend; }
+	const glm::vec3& getOriginalExtend() const { return originalMaxExtent - originalMinExtent; }
 	
 	void UpdateBounds(const glm::mat4& transform)
 	{		
@@ -222,8 +223,18 @@ public:
 	//Function for checking intersection with another AABB
 	bool Intersects(const AABB& other) const
 	{
-		return ( min.x <= other.min.x && max.x >= other.max.x) &&
-			   ( min.y <= other.min.y && max.y >= other.max.y) &&
-			   ( min.z <= other.min.z && max.z >= other.max.z);
+		return (min.x <= other.max.x && max.x >= other.min.x) &&
+			   (min.y <= other.max.y && max.y >= other.min.y) &&
+			   (min.z <= other.max.z && max.z >= other.min.z);
 	}
+};
+
+struct Face //polytope face
+{
+	glm::vec3 normal;
+	float distance = FLT_MAX;
+	std::array<int, 3> polytopeIndices = {}; //indices of the points in the polytope that forms this face
+
+	/*Face() : normal(glm::vec3(0)), distance(FLT_MAX), polytopeIndices({}) {}
+	Face(const glm::vec3& normal, float& distance, std::array<int,3> indices) : normal(normal), distance(distance),polytopeIndices(indices){}*/
 };

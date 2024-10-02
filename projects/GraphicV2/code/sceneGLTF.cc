@@ -18,9 +18,7 @@
 #include "inlineFunc.h"
 
 
-	glm::vec3 hitPoint; //global for debugging otherwise move it back inside left mouse
-
-
+glm::vec3 hitPoint; //global for debugging otherwise move it back inside left mouse
 
 namespace scene
 {
@@ -66,22 +64,18 @@ namespace scene
 		//Obj
 		GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(2, 2, 2), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
 		//GLTF
-		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 1, -2), glm::vec3(0, 0, 0), glm::vec3(2, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
+		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 2, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
+		GameObject* CubeGLTF2 = new GameObject(glm::vec3(2, 2, 2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 
 		//testing	
 		phyEngine->AddObject(plane);
 		phyEngine->AddObject(CubeGLTF);
+		phyEngine->AddObject(CubeGLTF2);
+
 
 		shader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/gBuffer.glsl");
 		quadShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/quad.glsl");
 		lightShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/LightPass.glsl");
-
-
-		//for(int i = 0; i < 2; i++) //don't need it for making physics
-		//{
-		//	float rnd = (rand() % 5) / 5.0f;
-		//	PointLight* pLight1 = new PointLight(glm::vec3(0, 3, 0), glm::vec3(rnd, 1, rnd), 1);
-		//}
  
 		//Directional light (sun)
 		Sun = new DirectionalLight(glm::vec3(0, -1, 0), glm::vec3(.5f, .5f, .5f),1.0f);
@@ -105,7 +99,7 @@ namespace scene
 
 	void scene::SceneGLTF::OnUpdate(float deltaTime)
 	{
-		phyEngine->Update();
+		phyEngine->Update(deltaTime);
 
 		input::InputHandler* inputManager = input::InputHandler::Instance();
 		// Read input
@@ -135,15 +129,16 @@ namespace scene
 			if(hitObject)
 			{
 				std::cout << hitObject->GetName() << "\n";
+				phyEngine->ApplyForce(hitObject, ray->direction, forceMagnitude,hitPoint);
 			}
 		}
-		
+
 		//Debug only RAY 
 		glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
 		if(hitObject)
 		{
 			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
-			Debug::DrawBox(ray->origin + ray->direction * hitPoint, glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0, 1, 0, 1), 2);
+			Debug::DrawBox(hitPoint, glm::vec3(), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec4(0, 1, 0, 1), 2);
 		}
 		else
 			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
@@ -240,10 +235,14 @@ namespace scene
 		}
 
 		ImGui::ListBoxFooter();
+		ImGui::DragFloat3("Angular velocity", &phyEngine->objects[inspectorSelected]->angularVelocity[0], 0.05f);
+
 		ImGui::DragFloat3("Position", &phyEngine->objects[inspectorSelected]->GetPosition()[0],0.05f);
 		ImGui::DragFloat3("Rotation", &phyEngine->objects[inspectorSelected]->GetRotation()[0], 0.05f);
 		ImGui::DragFloat3("Scale", &phyEngine->objects[inspectorSelected]->GetScale()[0], 0.05f);
 
+		ImGui::DragFloat("Force Magnitude", &forceMagnitude, 0.1f);
+		ImGui::DragFloat3("Gravity Force", &phyEngine->gravity[0], 0.1f);
 
 
 		ImGui::SliderInt("Current Light", &LightObjectInt, 0, totalLightCount);
@@ -252,6 +251,8 @@ namespace scene
 		ImGui::DragFloat("Light intensity", &LightManager::Get()->GetLight(LightObjectInt)->intensity,0.1f);
 
 		ImGui::Checkbox("Enable Debug Draw", &RenderDebug);
+		ImGui::Checkbox("Enable Simplex Debug Draw", &RenderDebug);
+
 
 		ImGui::Checkbox("OrbitLight", &LightManager::Get()->GetLight(LightObjectInt)->bOrbit);
 		
