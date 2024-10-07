@@ -147,10 +147,10 @@ public:
 //MAKE IT APPEAR DEBUG BOX ONTO THE OBJECT 
 class AABB 
 {
-private:
-	glm::vec3 originalMinExtent, originalMaxExtent;
+//private:
 
 public:
+	glm::vec3 originalMinExtent, originalMaxExtent;
 	glm::vec3 min; //minimum corner of the AABB
 	glm::vec3 max; //maximum corner of the AABB
 	glm::vec3 center; //Center of the AABB
@@ -220,6 +220,23 @@ public:
 		extend = glm::abs(max - min);
 	}
 
+	glm::vec3 GetClosestPoint(const glm::vec3& otherPoint) const
+	{
+		// Get the min and max points of the AABB (in world coordinates)
+		//glm::vec3 minPoint = boundingbox.GetMin(); // AABB minimum point in world space
+		//glm::vec3 maxPoint = boundingbox.GetMax(); // AABB maximum point in world space
+
+		// Clamp the reference point to the extents of the AABB
+		glm::vec3 closestPoint;
+
+		// For each axis (x, y, z), clamp the point to the AABB bounds
+		closestPoint.x = glm::clamp(otherPoint.x, min.x, max.x);
+		closestPoint.y = glm::clamp(otherPoint.y, min.y, max.y);
+		closestPoint.z = glm::clamp(otherPoint.z, min.z, max.z);
+
+		return closestPoint; // This is the closest point on the AABB
+	}
+
 	//Function for checking intersection with another AABB
 	bool Intersects(const AABB& other) const
 	{
@@ -231,10 +248,47 @@ public:
 
 struct Face //polytope face
 {
-	glm::vec3 normal;
-	float distance = FLT_MAX;
 	std::array<int, 3> polytopeIndices = {}; //indices of the points in the polytope that forms this face
+	glm::vec3 normal;
+	float distance;
+};
 
-	/*Face() : normal(glm::vec3(0)), distance(FLT_MAX), polytopeIndices({}) {}
-	Face(const glm::vec3& normal, float& distance, std::array<int,3> indices) : normal(normal), distance(distance),polytopeIndices(indices){}*/
+
+struct PolytopeData
+{
+	std::vector<glm::vec3> polytope; //vertices of the polytope //EXPANDING POLYTOPE LIST
+	std::vector<Face> face; // faces of the polytope, each with indices, normal, distance
+};
+
+struct Simplex
+{
+	Simplex()
+		: m_size(0),m_points({})
+	{}
+
+	Simplex& operator=(const std::initializer_list<glm::vec3>& list)
+	{
+		m_size = 0;
+
+		for (const auto point : list)
+			m_points[m_size++] = point;
+
+		return *this;
+	}
+
+	void push_front(const glm::vec3& point)
+	{
+		m_points = { point, m_points[0], m_points[1], m_points[2] };
+		m_size = std::min(m_size + 1, 4);
+	}
+
+	glm::vec3& operator[](int i) { return m_points[i]; }
+
+	size_t size() const { return m_size; }
+
+	auto begin() const { return m_points.begin(); }
+	auto end() const { return m_points.end() - (4 - m_size); }
+private:
+	std::array<glm::vec3, 4> m_points;
+	int m_size;
 };

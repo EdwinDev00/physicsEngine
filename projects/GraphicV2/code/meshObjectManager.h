@@ -111,10 +111,14 @@ public:
 
 	bool RayMeshIntersection(const Ray& ray, glm::vec3& hitpoint);
 
-	inline glm::vec3& GetPosition() { return position; }
-	inline glm::vec3& GetRotation() { return rotation; }
-	inline glm::vec3& GetScale() { return scale; }
+	inline const glm::vec3& GetPosition() const { return position; }
+	inline const glm::vec3& GetRotation() const { return rotation; }
+	inline const glm::vec3& GetScale() const { return scale; }
+	inline  glm::vec3& GetPosition()  { return position; }
+	inline  glm::vec3& GetRotation()  { return rotation; }
+	inline  glm::vec3& GetScale()  { return scale; }
 	inline std::string GetName() { return name; }
+	inline const glm::mat4& GetRotationMat() const { return modelRotation; }
 
 	inline const std::vector<Triangles>& GetTriangles() const { return triangles; }
 

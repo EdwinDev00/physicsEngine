@@ -81,48 +81,70 @@ inline bool RayIntersectAABB(const Ray& ray, const AABB& aabb)
 #pragma region GJK ( SIMPLEX + SUPPORT)
 
 // HELPER FUNCTIONS
-inline glm::vec3 GetFurthestPointInDirection(const GameObject* obj, const glm::vec3& direction) 
+inline glm::vec3 GetFurthestPointInDirection(const GameObject& obj, const glm::vec3& direction) 
 {
-    glm::vec3 furthestPoint = obj->boundingbox.min; // Start with a arbitrary point
-    float maxDotProduct = glm::dot(furthestPoint, direction);
-
-    //Loop through each triangle group and vertices to find the furthest point along the direction
-    for(const auto& triangle : obj->GetTriangles())
-    {
-        for(const auto& vertex : triangle.vertices)
+    glm::vec3 furthestPoint = glm::vec3();
+    float maxDistance = -FLT_MAX;
+    for(const Triangles& triangle : obj.GetTriangles())
+        for(const glm::vec3& vertex : triangle.vertices)
         {
-            float dotProduct = glm::dot(vertex, direction);
-            if(dotProduct > maxDotProduct)
+            float distance = glm::dot(vertex, direction);
+            if(distance > maxDistance)
             {
-                maxDotProduct = dotProduct;
+                maxDistance = distance;
                 furthestPoint = vertex;
             }
         }
-    }
-
     return furthestPoint;
+
+    //glm::vec3 furthestPoint = obj->boundingbox.GetExtents();
+
+    //float maxDotProduct = glm::dot(furthestPoint, direction);
+
+    ////Loop through each triangle group and vertices to find the furthest point along the direction
+    //for(const auto& triangle : obj->GetTriangles())
+    //{
+    //    for(const auto& vertex : triangle.vertices)
+    //    {
+    //        float dotProduct = glm::dot(vertex, direction);
+    //        if(dotProduct > maxDotProduct)
+    //        {
+    //            maxDotProduct = dotProduct;
+    //            furthestPoint = vertex;
+    //        }
+    //    }
+    //}
+
+    //return furthestPoint;
 }
 
-inline glm::vec3 Support(const GameObject* objA, const GameObject* objB, const glm::vec3& direction)
+inline glm::vec3 Support(const GameObject& objA, const GameObject& objB,  glm::vec3& direction)
 {
-    const float MAX_DISTANCE_THRESHOLD = 10.0f; // Adjust this based on your object scale
-    glm::vec3 normalizedDir = glm::normalize(direction);
-    glm::vec3 furthestPointA = GetFurthestPointInDirection(objA, normalizedDir);
-    glm::vec3 furthestPointB = GetFurthestPointInDirection(objB, -normalizedDir);
-    glm::vec3 newPoint = furthestPointA - furthestPointB; //Within Minkowski sum
-    // Clamp the distance to prevent the new point from being too far away
-    float distance = glm::length(newPoint);
-    if (distance > MAX_DISTANCE_THRESHOLD) {
-        newPoint = glm::normalize(newPoint);
-    }
+        direction = glm::normalize(direction);
+        glm::mat3 modelRotationA = glm::transpose(objA.GetRotationMat());
+        glm::mat3 modelRotationB = glm::transpose(objB.GetRotationMat());
 
-    return  newPoint;
+        // Get the furthest point on objA in the given direction
+        glm::vec3 furthestPointA = GetFurthestPointInDirection(objA, direction * modelRotationA) * objA.GetScale() + objA.GetPosition();
+   
+        // Get the furthest point on objB in the opposite direction
+        glm::vec3 furthestPointB = GetFurthestPointInDirection(objB, -direction * modelRotationB) * objB.GetScale() + objB.GetPosition();
+
+        // Minkowski difference: objA - objB
+        glm::vec3 minkowskiDifference = furthestPointA - furthestPointB;
+        
+        // Check for near-zero components in the Minkowski difference and adjust if necessary
+        if (glm::length(minkowskiDifference) < 1e-6f) {
+            minkowskiDifference += direction * 1e-6f; // Apply small offset in the direction to avoid degenerate case
+        }
+
+        return minkowskiDifference; // Return the point on the Minkowski difference
 }
 
-inline bool LineCase(std::vector<glm::vec3>& simplex, glm::vec3& direction)
+inline bool LineCase(Simplex& simplex, glm::vec3& direction)
 {
-    glm::vec3 A = simplex[1]; // Last added point to the simplex (most recent point)
-    glm::vec3 B = simplex[0]; // Second point in the line simplex
+    glm::vec3 A = simplex[0]; // Last added point to the simplex (most recent point)
+    glm::vec3 B = simplex[1]; // Second point in the line simplex
 
     glm::vec3 AB = B - A; // Vector from A to B (forming the edge of the line)
     glm::vec3 A0 = -A; // Vector from A to the origin (find if origin is in this direction)
@@ -131,7 +153,14 @@ inline bool LineCase(std::vector<glm::vec3>& simplex, glm::vec3& direction)
     if (glm::dot(AB, A0) > 0) 
     { 
         // Project the search direction towards the origin, in the direction of AB
-        direction = glm::cross(glm::cross(AB, A0), A0); 
+        glm::vec3 crossProd = glm::cross(AB, A0);
+        if (glm::length(crossProd) < 1e-6f) {
+            // Handle case where the cross product is nearly zero
+            direction = A0;
+        }
+        else {
+            direction = glm::cross(crossProd, AB);
+        }
     }
     else 
     {
@@ -143,11 +172,11 @@ inline bool LineCase(std::vector<glm::vec3>& simplex, glm::vec3& direction)
     return false;
 }
 
-inline bool TriangleCase(std::vector<glm::vec3>& simplex, glm::vec3& direction) 
+inline bool TriangleCase(Simplex& simplex, glm::vec3& direction) 
 {
-    glm::vec3 A = simplex[2];
+    glm::vec3 A = simplex[0];
     glm::vec3 B = simplex[1];
-    glm::vec3 C = simplex[0];
+    glm::vec3 C = simplex[2];
 
     glm::vec3 AB = B - A;
     glm::vec3 AC = C - A;
@@ -155,6 +184,7 @@ inline bool TriangleCase(std::vector<glm::vec3>& simplex, glm::vec3& direction)
 
     //Compute the normal of the triangle
     glm::vec3 ABC_normal = glm::cross(AB, AC);
+
     //Determine which side of the triangle the origin is on
     glm::vec3 ABC_normal_toward_origin = glm::cross(ABC_normal, AC);
 
@@ -195,17 +225,25 @@ inline bool TriangleCase(std::vector<glm::vec3>& simplex, glm::vec3& direction)
     return false;
 }
 
-inline bool TetrahedronCase(std::vector<glm::vec3>& simplex, glm::vec3& direction) 
+inline bool TetrahedronCase(Simplex& simplex, glm::vec3& direction) 
 {
-    glm::vec3 A = simplex[3];  //Last added point
-    glm::vec3 B = simplex[2];
-    glm::vec3 C = simplex[1];
-    glm::vec3 D = simplex[0];
+    glm::vec3 A = simplex[0];  //Last added point
+    glm::vec3 B = simplex[1];
+    glm::vec3 C = simplex[2];
+    glm::vec3 D = simplex[3];
 
     glm::vec3 AB = B - A;
     glm::vec3 AC = C - A;
     glm::vec3 AD = D - A;
     glm::vec3 AO = -A;
+
+    Debug::DrawLine(A, B, glm::vec4(1, 0, 0, 1), 4.0f); // first to second
+    Debug::DrawLine(A, C, glm::vec4(0, 1, 0, 1), 4.0f); // first to third
+    Debug::DrawLine(A, D, glm::vec4(0, 0, 1, 1), 4.0f); // first to forth
+    Debug::DrawLine(B, C, glm::vec4(1, 1, 0, 1), 4.0f); // second to third
+    Debug::DrawLine(C, D, glm::vec4(1, 0, 1, 1), 4.0f); // third to forth
+    Debug::DrawLine(D, B, glm::vec4(1, 1, 1, 1), 4.0f); // forth to second
+
 
     //Compute normals for each face of the tetrahedron
     glm::vec3 ABC_normal = glm::cross(AB, AC);  //Triangle ABC
@@ -240,7 +278,7 @@ inline bool TetrahedronCase(std::vector<glm::vec3>& simplex, glm::vec3& directio
     return true;  // Collision detected (origin inside the tetrahedron)
 }
 
-inline bool HandleSimplex(std::vector<glm::vec3>& simplex, glm::vec3& direction)
+inline bool HandleSimplex(Simplex& simplex, glm::vec3& direction)
 {
     switch (simplex.size())
     {
@@ -288,84 +326,253 @@ inline Face findClosestFace(const std::vector<Face>& polytope)
         {
             closestFace = face;
             minDistance = face.distance;
-            closestFace.distance = face.distance;
+            //closestFace.distance = face.distance;
+            //closestFace.normal = face.normal;
         }
     }
     return closestFace;
 }
 
-inline void ExpandPolytope(std::vector<Face>& polytope, const std::vector<glm::vec3>& simplex,const glm::vec3& newPoint)
+//// Helper function to check and add unique edges
+//bool IfAddUniqueEdge(std::vector<std::pair<int, int>>& edges, int index1, int index2)
+//{
+//    for (auto it = edges.begin(); it != edges.end(); ++it) {
+//        // Check if the edge exists in reverse order, indicating it's shared and not unique
+//        if ((it->first == index2 && it->second == index1)) {
+//            edges.erase(it); // Remove the shared edge, it's not unique
+//            return false;
+//        }
+//    }
+//    return true; // The edge is unique
+//}
+
+inline void ExpandPolytope(std::vector<Face>& polytope, std::vector<glm::vec3>& simplex,const glm::vec3& newPoint)
 {
-    int newPointIndex = simplex.size();
+    ////NEED TO TEST THIS UNIQUE EDGE FUNCTION 
+
+    //int newPointIndex = simplex.size();
     //simplex.push_back(newPoint);
-    std::vector<glm::vec3> tempSimplex = simplex;
-    tempSimplex.push_back(newPoint);
 
-    std::vector<Face> newFaces;
-    // Iterate through all the faces and determine which ones are facing the new point
-    std::vector<int> faceToRemove;
-    for(int i = 0; i < polytope.size(); i++)
-    {
-        Face& face = polytope[i];
-        // Check if the face is visible from the new point
-        glm::vec3 faceToNewPoint = newPoint - tempSimplex[face.polytopeIndices[0]]; // Vector from face to the new point
-        if(glm::dot(face.normal,faceToNewPoint) > 0) // If the face normal points toward the new point
-        {
-            faceToRemove.push_back(i); // Mark the current face for removal
+    //std::vector<Face> newFaces;
+    //std::vector<int> faceToRemove;
 
-            // Create new faces by connecting the new point to the edge of the old face 
-            for(int j = 0; j < 3; j++)
-            {
-                // Create new face using one edge of the old face and the new point
-                std::array<int, 3> newIndices =
-                {
-                    face.polytopeIndices[j],
-                    face.polytopeIndices[(j + 1) % 3],
-                    newPointIndex
-                };
+    //// keep track of pair indices for representing the edge of the polytope
+    //std::vector<std::pair<int, int>> uniqueEdges;
 
-                // Compute normal for the new face
-                glm::vec3 normal = ComputeNormal(tempSimplex[newIndices[0]], tempSimplex[newIndices[1]], tempSimplex[newIndices[2]]);
-                // Skip degenerate faces
-                if (glm::length(normal) < 1e-6f) {
-                    continue;
-                }
-                float distance = glm::dot(normal, tempSimplex[newIndices[0]]);
+    //for(int i = 0; i < polytope.size(); i++)
+    //{
+    //    Face& face = polytope[i];
+    //    glm::vec3 faceToNewPoint = newPoint - simplex[face.polytopeIndices[0]]; // Vector from face to the new point
+    //    if(glm::dot(face.normal,faceToNewPoint) > 0) // face is visible from the new point
+    //    {
+    //        faceToRemove.push_back(i);
 
-                newFaces.push_back(Face{ normal, distance,newIndices });
-            }
-        }
-    }
+    //        //Collect the unique edges from this face
+    //        for(int j = 0; j < 3; j++)
+    //        {
+    //            int index1 = face.polytopeIndices[j];
+    //            int index2 = face.polytopeIndices[(j + 1) % 3];
 
-    //Remove the old faces that are visible from the new point
-    for (int i = faceToRemove.size() - 1; i >= 0; i--)
-        polytope.erase(polytope.begin() + faceToRemove[i]);
+    //            //Add unique edge (order matters, so check both direction)
+    //            if(!IfAddUniqueEdge(uniqueEdges,index1,index2))
+    //            {
+    //                uniqueEdges.push_back({ index1,index2 });
+    //            }
 
-    polytope.insert(polytope.end(), newFaces.begin(), newFaces.end());
+    //        }
+    //    }
+    //}
+
+    ////remove the visible face
+    //for (int i = faceToRemove.size() - 1; i >= 0; i--) polytope.erase(polytope.begin() + faceToRemove[i]);
+
+    ////Create the new face from the unique edges and the new point
+    //for(const auto& edge : uniqueEdges)
+    //{
+    //    std::array<int, 3> newIndices = { edge.first, edge.second, newPointIndex };
+    //    glm::vec3 a = simplex[newIndices[0]];
+    //    glm::vec3 b = simplex[newIndices[1]];
+    //    glm::vec3 c = simplex[newIndices[2]];
+    //    glm::vec3 normal = glm::normalize(glm::cross(b-a, c-a));
+    //    if (glm::length(normal) < 1e-6f) continue;
+
+    //    float distance = glm::dot(normal, simplex[newIndices[0]]);
+    //    if (glm::dot(normal, simplex[newIndices[0]]) > 0)
+    //    {
+    //        normal = -normal;
+    //        distance = -distance;
+    //    }
+
+    //    newFaces.push_back(Face{ normal,distance, newIndices });
+    //}
+    //polytope.insert(polytope.end(), newFaces.begin(), newFaces.end());
+
+    //int newPointIndex = simplex.size();
+    //simplex.push_back(newPoint);
+ 
+    //std::vector<Face> newFaces;
+    //// Iterate through all the faces and determine which ones are facing the new point
+    //std::vector<int> faceToRemove;
+    //for(int i = 0; i < polytope.size(); i++)
+    //{
+    //    Face& face = polytope[i];
+    //    // Check if the face is visible from the new point
+    //    glm::vec3 faceToNewPoint = newPoint - simplex[face.polytopeIndices[0]]; // Vector from face to the new point
+    //    if(glm::dot(face.normal,faceToNewPoint) > 0) // If the face normal points toward the new point
+    //    {
+    //        faceToRemove.push_back(i); // Mark the current face for removal
+
+    //        // Create new faces by connecting the new point to the edge of the old face 
+    //        for(int j = 0; j < 3; j++)
+    //        {
+    //            // Create new face using one edge of the old face and the new point
+    //            std::array<int, 3> newIndices =
+    //            {
+    //                face.polytopeIndices[j],
+    //                face.polytopeIndices[(j + 1) % 3],
+    //                newPointIndex
+    //            };
+
+    //            // Compute normal for the new face
+    //            glm::vec3 normal = ComputeNormal(simplex[newIndices[0]], simplex[newIndices[1]], simplex[newIndices[2]]);
+    //            // Skip degenerate faces
+    //            if (glm::length(normal) < 1e-6f) {
+    //                continue;
+    //            }
+    //            // Ensure the normal is outward facing
+    //           if (glm::dot(normal, simplex[newIndices[0]]) > 0)
+    //           {
+    //                normal = -normal;
+    //           }
+
+    //            float distance = glm::dot(normal, simplex[newIndices[0]]);
+
+    //            newFaces.push_back(Face{ normal, distance,newIndices });
+    //        }
+    //    }
+    //}
+
+    ////Remove the old faces that are visible from the new point
+    //for (int i = faceToRemove.size() - 1; i >= 0; i--)
+    //    polytope.erase(polytope.begin() + faceToRemove[i]);
+
+    //polytope.insert(polytope.end(), newFaces.begin(), newFaces.end());
 }
 
 #pragma region EPA
-inline std::vector<Face> InitalizePolytope(const std::vector<glm::vec3> simplex)
+//inline std::vector<Face> InitalizePolytope(const std::vector<glm::vec3>& simplex)
+//{
+//   std::vector<Face> polytope;
+//   // Create faces for the tetrahedron (4 faces)
+//   std::vector<std::array<int, 3>> indices = {
+//       {0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}
+//   };
+//   
+//   for(const auto& indexSet : indices)
+//   {
+//       glm::vec3 a = simplex[indexSet[0]];
+//       glm::vec3 b = simplex[indexSet[1]];
+//       glm::vec3 c = simplex[indexSet[2]];
+//
+//       float ABx = b.x - a.x; 
+//       float ABy = b.y - a.y; 
+//       float ABz = b.z - a.z;
+//       float ACx = c.x - a.x;
+//       float ACy = c.y - a.y;
+//       float ACz = c.z - a.z;
+//       glm::vec3 AB = glm::vec3(ABx, ABy, ABz);
+//       glm::vec3 AC = glm::vec3(ACx, ACy, ACz);
+//
+//       // Compute the normal of the triangle face
+//       glm::vec3 normal = glm::normalize(glm::cross(AB, AC));
+//       if (glm::length(normal) <= 0) continue;
+//       // Compute the signed distance to the origin
+//       float distance = glm::dot(normal, a);
+//
+//       // Ensure the normal is pointing outward by checking the distance
+//       if(distance < 0.0f)
+//       {
+//           normal = -normal; // Flip the normal
+//           distance = -distance; // Make the distance positiv;
+//       }
+//
+//       // CHECK For degenerate triangle by comparing the length of the normal is greather than 1e-6f
+//       polytope.push_back(Face{ {indexSet[0],indexSet[1],indexSet[2]} }, normal, distance);
+//   }
+//
+//   return polytope;
+//}
+#pragma endregion
+
+#pragma region V2 EPA
+
+inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex) 
 {
-   std::vector<Face> polytope;
-   // Create faces for the tetrahedron (4 faces)
-   std::vector<std::array<int, 3>> indices = {
-       {0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}
-   };
+    std::vector<glm::vec3> polytope(simplex.begin(), simplex.end());
+    // Predefined tetrahedron faces
+    std::vector<std::array<int, 3>> indices =
+    {
+        {0,1,2},
+        {0,3,1},
+        {0,2,3},
+        {1,3,2}
+    };
 
-   for(const auto& indexSet : indices)
-   {
-       glm::vec3 normal = ComputeNormal(simplex[indexSet[0]], simplex[indexSet[1]], simplex[indexSet[2]]);
-       //only add non degenerate faces
-       if(glm::length(normal) > 1e-6f)
-       {
-           //PRECISION FIX FOR DISTANCE, IF DEGENERATE RESULT SET IT TO 0
-           float distance = glm::dot(normal, simplex[indexSet[0]]); // Calculate distance to origin
-           polytope.push_back({ normal,distance,{indexSet[0],indexSet[1],indexSet[2]} });
-       }
+    std::vector<Face> faces;
+    for(const auto& faceIndexSet :indices)
+    {
+        glm::vec3 A = polytope[faceIndexSet[0]]; //First vertex of the face
+        glm::vec3 B = polytope[faceIndexSet[1]]; //second vertex of the face
+        glm::vec3 C = polytope[faceIndexSet[2]]; //third vertex of the face
 
-   }
-   return polytope;
+        //Compute the normal of the face
+        glm::vec3 normal = glm::normalize(glm::cross(B - A, C - A));
+        // ensure the normal is facing outward by checking if its pointing away from the origin
+        if (glm::dot(normal, A) < 0) normal = -normal; //reverse the normal direction if it faces inward
+
+        //visualize the edges of the current polytope
+        Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3);
+        Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
+        Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
+
+        //Draw the face normal
+        glm::vec3 centroid = (A + B + C) / 3.0f;
+        Debug::DrawLine(centroid, centroid + normal, glm::vec4(1.0f, 0.5f, 0.0f, 1.0f), 3); //orange for the normal
+
+        float distance = glm::dot(normal, A); // distance from the origin to the face along the normal
+        
+        // Add this face's data (indices, normal, distance) to the polytope data
+        faces.push_back({ faceIndexSet,normal,distance });
+    }
+
+    return { polytope,faces };
+}
+
+//GET CLOSEST FACE
+
+//VISUALIZECLOSEST FACE
+inline void VisualizeClosestFace(const PolytopeData& data, const int closestFaceIndex)
+{
+    //visualize the closest face and its normal
+    const auto& faceIndices = data.face[closestFaceIndex].polytopeIndices;
+    glm::vec3 A = data.polytope[faceIndices[0]]; //First vertex of the face
+    glm::vec3 B = data.polytope[faceIndices[1]]; //second vertex of the face
+    glm::vec3 C = data.polytope[faceIndices[2]]; //third vertex of the face
+
+    glm::vec3 normal = data.face[closestFaceIndex].normal;
+    // Highlight the edges of the closest face in green
+    Debug::DrawLine(A, B, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+    Debug::DrawLine(B, C, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+    Debug::DrawLine(C, A, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+
+    // Highlight the normal of the closest face in green
+    glm::vec3 centroid = (A + B + C) / 3.0f; // Calculate the centroid of the face
+    Debug::DrawLine(centroid, centroid + normal, glm::vec4(0, 1, 0, 1), 3); // Green for the normal
+
+    //Visualize the origin point of the closest polytope to the centroid
+    //origin of the minkowski difference
+    glm::vec3 origin(0.0f);
+    Debug::DrawLine(origin, centroid + normal, glm::vec4(1, 0, 0, 1), 3);
 }
 
 #pragma endregion
