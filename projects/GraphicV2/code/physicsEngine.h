@@ -58,10 +58,10 @@ class PhysicsEngine
 					EPAV2(objA,objB,simplexPs, collisionNormal, penetrationDepth);
 					//EPA(objA, objB, simplexPs,collisionNormal, penetrationDepth);
 
-					//std::cout << "EPA PenetrationDepth: " << penetrationDepth << "\n";
-					//std::cout << "EPA Collision Normal x: " << collisionNormal.x << "\n";
-					//std::cout << "EPA Collision Normal y: " << collisionNormal.y << "\n";
-					//std::cout << "EPA Collision Normal z: " << collisionNormal.z << "\n";
+					std::cout << "EPA PenetrationDepth: " << penetrationDepth << "\n";
+					std::cout << "EPA Collision Normal x: " << collisionNormal.x << "\n";
+					std::cout << "EPA Collision Normal y: " << collisionNormal.y << "\n";
+					std::cout << "EPA Collision Normal z: " << collisionNormal.z << "\n";
 
 					//Apply collision response using the collision normal and penetrationDepth
 					//Collision response logic
@@ -192,35 +192,126 @@ class PhysicsEngine
 			PolytopeData polytopeData = InitalizePolytopeV2(simplex);
 			int iterationCount = 50; //prevent from infinite loop
 			// WHILE LOOP 
-			//----------- FIND CLOSEST FACE --------------------------------
-			int closestFaceIndex = 0;
-			float minDistance = polytopeData.face[0].distance;
-
-			for(int i = 1; i < polytopeData.face.size(); i++)
+			while(iterationCount--)
 			{
-				if(polytopeData.face[i].distance < minDistance)
+				Debug::ClearQueue();
+				//----------- FIND CLOSEST FACE --------------------------------
+				int closestFaceIndex = 0;
+				float minDistance = polytopeData.face[0].distance;
+
+				for(int i = 1; i < polytopeData.face.size(); i++)
 				{
-					minDistance = polytopeData.face[i].distance;
-					closestFaceIndex = i;
+					if(polytopeData.face[i].distance < minDistance)
+					{
+						minDistance = polytopeData.face[i].distance;
+						closestFaceIndex = i;
+					}
+				}
+
+				//VisualizeClosestFace(polytopeData, closestFaceIndex);
+				glm::vec3 closestFaceNormal = polytopeData.face[closestFaceIndex].normal;
+				float closestFaceDistance = polytopeData.face[closestFaceIndex].distance;
+
+				VisualizeClosestFace(polytopeData, closestFaceIndex);
+				// -----------------------------------------------------------------------------
+				// --------- FIND THE NEW SUPPORT POINT -----------------------------
+				// Calculate the support point along the closest face normal
+				glm::vec3 supportPoint = Support(objA, objB, closestFaceNormal);
+				float newDistance = glm::dot(closestFaceNormal,supportPoint);
+				if (newDistance - closestFaceDistance < 1e-6f)
+				{
+					std::cout << "SUCCESSFUL EPA RETURN \n";
+					collisionNormal = closestFaceNormal;
+					penetrationDepth = closestFaceDistance;
+					
+					std::cout << "EPA PenetrationDepth: " << penetrationDepth << "\n";
+					std::cout << "EPA Collision Normal x: " << collisionNormal.x << "\n";
+					std::cout << "EPA Collision Normal y: " << collisionNormal.y << "\n";
+					std::cout << "EPA Collision Normal z: " << collisionNormal.z << "\n";
+
+					return;
+				}
+				
+				// ------------------------------------------------------------------
+				//EXPANDING POLYTOPE EDGE BASED
+				//Get the closest Face
+				const auto& closestFace = polytopeData.face[closestFaceIndex];
+				glm::vec3 A = polytopeData.polytope[closestFace.polytopeIndices[0]];
+				glm::vec3 B = polytopeData.polytope[closestFace.polytopeIndices[1]];
+				glm::vec3 C = polytopeData.polytope[closestFace.polytopeIndices[2]];
+
+				//Add the new vertex to the polytope
+				int newVertexIndex = polytopeData.polytope.size();
+				polytopeData.polytope.push_back(supportPoint);
+
+
+				//Remove the closest face (replace it by the new face)
+				polytopeData.face.erase(polytopeData.face.begin() + closestFaceIndex);
+
+				//Create three new faces connecting the support point to the edges of the old face
+				Face newFace1 = CreateFace(closestFace.polytopeIndices[0], closestFace.polytopeIndices[1], newVertexIndex, polytopeData.polytope);
+				Face newFace2 = CreateFace(closestFace.polytopeIndices[1], closestFace.polytopeIndices[2], newVertexIndex, polytopeData.polytope);
+				Face newFace3 = CreateFace(closestFace.polytopeIndices[2], closestFace.polytopeIndices[0], newVertexIndex, polytopeData.polytope);
+
+				polytopeData.face.push_back(newFace1);
+				polytopeData.face.push_back(newFace2);
+				polytopeData.face.push_back(newFace3);
+
+
+				//// Update adjacent face for proper connectivity
+				//for(int i = 0; i < polytopeData.face.size(); i++)
+				//{
+				//	const Face currentFace = polytopeData.face[i];
+				//	//Check any edge of the current face shares the newly added vertex
+				//	if(EdgeSharesVertex(currentFace,newVertexIndex))
+				//	{
+				//		//// ERROR: occuring repeating same index point (find solution)
+				//		//Face updateFace1 = CreateFace(currentFace.polytopeIndices[0], currentFace.polytopeIndices[1], newVertexIndex, polytopeData.polytope);
+				//		//Face updateFace2 = CreateFace(currentFace.polytopeIndices[1], currentFace.polytopeIndices[2], newVertexIndex, polytopeData.polytope);
+				//		//Face updateFace3 = CreateFace(currentFace.polytopeIndices[2], currentFace.polytopeIndices[0], newVertexIndex, polytopeData.polytope);
+
+				//		////Replace the old face with the new faces that connect to the new vertex
+				//		//polytopeData.face[i] = updateFace1; // replace the current face
+				//		//polytopeData.face.push_back(updateFace2); // add the new face
+				//		//polytopeData.face.push_back(updateFace3); // add the new face
+				//	}
+				//}
+
+				for (const auto& face : polytopeData.face)
+				{
+					glm::vec3 A = polytopeData.polytope[face.polytopeIndices[0]];
+					glm::vec3 B = polytopeData.polytope[face.polytopeIndices[1]];
+					glm::vec3 C = polytopeData.polytope[face.polytopeIndices[2]];
+
+					if(EdgeSharesVertex(face,newVertexIndex))
+					{
+						if (face.polytopeIndices[0] == newVertexIndex)
+							Debug::DrawLine(A, B, glm::vec4(1, 1, 1, 1), 6); // red shared edges A->B
+						if (face.polytopeIndices[1] == newVertexIndex)
+							Debug::DrawLine(B, C, glm::vec4(1, 1, 1, 1), 6); // green shared edges B->C
+						if (face.polytopeIndices[2] == newVertexIndex)
+							Debug::DrawLine(C, A, glm::vec4(1, 1, 1, 1), 6); // red shared edges C->A
+
+					}
+					else
+					{
+						// Draw the edges of the new face
+						Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3); // Cyan for the edges
+						Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
+						Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
+					}
+
+					// Calculate the centroid of the face to draw the normal
+					glm::vec3 centroid = (A + B + C) / 3.0f;
+
+					// Get the face normal
+					glm::vec3 normal = face.normal;
+
+					 //Draw the face normal starting from the centroid
+					//Debug::DrawLine(centroid, centroid + normal, glm::vec4(1.0f, 0.5f, 0.0f, 1.0f), 1); // Orange for the normal
 				}
 			}
-
-			glm::vec3 closestFaceNormal = polytopeData.face[closestFaceIndex].normal;
-			float closestFaceDistance = polytopeData.face[closestFaceIndex].distance;
-			VisualizeClosestFace(polytopeData, closestFaceIndex);
-			// -----------------------------------------------------------------------------
-			// --------- FIND THE NEW SUPPORT POINT -----------------------------
-			// Calculate the support point along the closest face normal
-			glm::vec3 supportPoint = Support(objA, objB, closestFaceNormal);
-			float newDistance = glm::dot(closestFaceNormal,supportPoint);
-			if(newDistance - closestFaceDistance < 1e-6f)
-			{
-				std::cout << "SUCCESSFUL EPA RETURN \n";
-				collisionNormal = closestFaceNormal;
-				penetrationDepth = closestFaceDistance;
-				return;
-			}
-			// ------------------------------------------------------------------
+			//-----------------------
 
 #pragma region BRUTE FORCE VERSION
 			//WHile loop (EPA operation)
@@ -337,24 +428,24 @@ class PhysicsEngine
 		//	std::cout << polytope.size() << "\n";
 		//}
 
-		void ApplyImpulse( GameObject* objA,  GameObject* objB, const glm::vec3& collisionNormal, const float penetrationDepth)
+		void ApplyImpulse(GameObject& objA,  GameObject& objB, const glm::vec3& collisionNormal, const float penetrationDepth)
 		{
 			//FIRST APPLY ONLY TO velocity
-			glm::vec3 relativeVelocity = objB->velocity - objA->velocity;
+			glm::vec3 relativeVelocity = objB.velocity - objA.velocity;
 			float velocityAlongNormal = glm::dot(relativeVelocity, collisionNormal);
 			if (velocityAlongNormal > 0) return; //Do not resolve collision if object are moving away
 
-			float invMassA = (objA->mass > 0) ? 1.0f / objA->mass : 0.0f;
-			float invMassB = (objB->mass > 0) ? 1.0f / objB->mass : 0.0f;
+			float invMassA = (objA.mass > 0) ? 1.0f / objA.mass : 0.0f;
+			float invMassB = (objB.mass > 0) ? 1.0f / objB.mass : 0.0f;
 
 			float impulseScalar = -(1.0f) * velocityAlongNormal;
 			impulseScalar /= invMassA + invMassB;
 
 			glm::vec3 impulseVec = impulseScalar * collisionNormal;
 			if (invMassA > 0.0f)
-				objA->velocity -= impulseVec * invMassA; //Apply opposite impuls to object
+				objA.velocity -= impulseVec * invMassA; //Apply opposite impuls to object
 			if (invMassB > 0.0f)
-				objB->velocity -= impulseVec * invMassB; //Apply opposite impuls to object
+				objB.velocity -= impulseVec * invMassB; //Apply opposite impuls to object
 
 			//UPDATE LATER TO EFFECT ANGULAR VELOCITY 
 

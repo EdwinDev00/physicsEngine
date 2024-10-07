@@ -530,14 +530,13 @@ inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex)
         // ensure the normal is facing outward by checking if its pointing away from the origin
         if (glm::dot(normal, A) < 0) normal = -normal; //reverse the normal direction if it faces inward
 
-        //visualize the edges of the current polytope
-        Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3);
-        Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
-        Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
-
-        //Draw the face normal
-        glm::vec3 centroid = (A + B + C) / 3.0f;
-        Debug::DrawLine(centroid, centroid + normal, glm::vec4(1.0f, 0.5f, 0.0f, 1.0f), 3); //orange for the normal
+        ////visualize the edges of the current polytope
+        //Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3);
+        //Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
+        //Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
+        ////Draw the face normal
+        //glm::vec3 centroid = (A + B + C) / 3.0f;
+        //Debug::DrawLine(centroid, centroid + normal, glm::vec4(1.0f, 0.5f, 0.0f, 1.0f), 3); //orange for the normal
 
         float distance = glm::dot(normal, A); // distance from the origin to the face along the normal
         
@@ -546,6 +545,19 @@ inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex)
     }
 
     return { polytope,faces };
+}
+
+inline Face CreateFace(int v1,int v2,int v3, const std::vector<glm::vec3>& polytope)
+{
+    Face newFace;
+    newFace.polytopeIndices = { v1,v2,v3 };
+    glm::vec3 A = polytope[v1];
+    glm::vec3 B = polytope[v2];
+    glm::vec3 C = polytope[v3];
+    newFace.normal = glm::normalize(glm::cross(B - A, C - A));
+    if (glm::dot(newFace.normal, A) < 0) newFace.normal = -newFace.normal;
+    newFace.distance = glm::dot(newFace.normal, A);
+    return newFace;
 }
 
 //GET CLOSEST FACE
@@ -567,12 +579,34 @@ inline void VisualizeClosestFace(const PolytopeData& data, const int closestFace
 
     // Highlight the normal of the closest face in green
     glm::vec3 centroid = (A + B + C) / 3.0f; // Calculate the centroid of the face
-    Debug::DrawLine(centroid, centroid + normal, glm::vec4(0, 1, 0, 1), 3); // Green for the normal
-
-    //Visualize the origin point of the closest polytope to the centroid
-    //origin of the minkowski difference
-    glm::vec3 origin(0.0f);
-    Debug::DrawLine(origin, centroid + normal, glm::vec4(1, 0, 0, 1), 3);
+    Debug::DrawLine(centroid, centroid + normal, glm::vec4(0, 1, 0, 1), 10); // Green for the normal
 }
+
+//SIMPLE ONE INDEX
+inline bool EdgeSharesVertex(const Face& face, int newVertexIndex)
+{
+    // Check if the new vertex is already part of the face
+    // Compare the vertex index with the indices in the face
+    return (face.polytopeIndices[0] == newVertexIndex ||
+        face.polytopeIndices[1] == newVertexIndex ||
+        face.polytopeIndices[2] == newVertexIndex);
+}
+
+//EXTENDED VERSION CHECKING SHARED VERTICES
+inline bool EdgeSharesVertex(const Face& face, int newVertexIndex, const PolytopeData& polytopeData)
+{
+    // Retrieve the vertices of the current face
+    glm::vec3 A = polytopeData.polytope[face.polytopeIndices[0]];
+    glm::vec3 B = polytopeData.polytope[face.polytopeIndices[1]];
+    glm::vec3 C = polytopeData.polytope[face.polytopeIndices[2]];
+
+    // Retrieve the new vertex
+    glm::vec3 newVertex = polytopeData.polytope[newVertexIndex];
+
+    // Check if the new vertex is part of any edge in the face
+    // We are comparing the new vertex to see if it lies along the edges of the face
+    return (glm::length(newVertex - A) < 1e-6f || glm::length(newVertex - B) < 1e-6f || glm::length(newVertex - C) < 1e-6f);
+}
+
 
 #pragma endregion
