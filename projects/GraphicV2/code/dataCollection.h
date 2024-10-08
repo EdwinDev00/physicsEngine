@@ -285,6 +285,7 @@ struct Simplex
 	glm::vec3& operator[](int i) { return m_points[i]; }
 
 	size_t size() const { return m_size; }
+	const std::array<glm::vec3,4>& getPoints() const { return m_points; }
 
 	auto begin() const { return m_points.begin(); }
 	auto end() const { return m_points.end() - (4 - m_size); }

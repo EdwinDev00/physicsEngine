@@ -144,23 +144,6 @@ namespace scene
 		}
 		else
 			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
-
-		//if (!phyEngine->simplexPs.empty())
-		//	for (int i = 0; i < phyEngine->simplexPs.size(); i++)
-		//	{
-		//		if (i + 1 == 4)
-		//		{
-		//			Debug::DrawLine(phyEngine->simplexPs[i], phyEngine->simplexPs[0], glm::vec4(1, 1, 0, 1), 4.0f);
-		//			break;
-		//		}
-		//		else
-		//			Debug::DrawLine(phyEngine->simplexPs[i], phyEngine->simplexPs[i+1], glm::vec4(1, 0, 0, 1), 4.0f);
-		//			
-		//	}
-		////Debug::DrawLine(phyEngine->simplexPs[0], phyEngine->simplexPs[i 1], glm::vec4(1, 0, 0, 1), 4.0f);
-
-			
-
 	}
 
 	void scene::SceneGLTF::OnRender()
