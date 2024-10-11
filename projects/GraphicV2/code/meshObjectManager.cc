@@ -112,7 +112,7 @@ void MeshObject::ReadDataV2(const std::string& line, std::vector<glm::vec2>& out
 
 #pragma region GAMEOBJECT
 
-GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath)
+GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale,std::string modelPath, bool isStatic, std::string texPath)
 	: position(position), rotation(rotation), scale(scale), velocity(glm::vec3(0.0f)), acceleration(glm::vec3(0.0f)), mass(0), angularVelocity(glm::vec3(0.0f)),
 	  angularAcceleration(glm::vec3(0.0f)), modelRotation(glm::identity<glm::mat4>())
 {
@@ -152,12 +152,16 @@ GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, 
 	//set the aabb bounds exactly like the modeled size (include matching in scale)
 	boundingbox = AABB(modelObject);
 
-	//Calculate the object's volume from the obj AABB
-	glm::vec3 extent = boundingbox.GetExtents();
-	float volume = extent.x * extent.y * extent.z; //AABB Volume
+	if (!isStatic)
+	{
+		//Calculate the object's volume from the obj AABB
+		glm::vec3 extent = boundingbox.GetExtents();
+		float volume = extent.x * extent.y * extent.z; //AABB Volume
 
-	// Estimate the mass based on the volume (future can also define the density)
-	mass = volume * 5.0f; //Assuming constant density for simplicity (density set to 5); 
+		// Estimate the mass based on the volume (future can also define the density)
+		mass = volume * 5.0f; //Assuming constant density for simplicity (density set to 5); 
+	}
+	else mass = 0;
 }
 
 void GameObject::Draw(ShaderResource& program, Object::Camera& cam) 

@@ -88,7 +88,7 @@ public:
 	glm::vec4 debugC = glm::vec4(0, 0, 1, 1);
 
 	GameObject(){};
-	GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, std::string texPath = "");
+	GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::string modelPath, bool isStatic = false, std::string texPath = "");
 
 	void Draw(ShaderResource& program, Object::Camera& cam);
 	void OnUpdate(float deltaTime)
@@ -118,9 +118,18 @@ public:
 	inline  glm::vec3& GetRotation()  { return rotation; }
 	inline  glm::vec3& GetScale()  { return scale; }
 	inline std::string GetName() { return name; }
+
+	inline const glm::mat4& GetTranslationMat() const  { return modelTranslation; }
 	inline const glm::mat4& GetRotationMat() const { return modelRotation; }
+	inline const glm::mat4& GetScaleMat() const { return modelScale; }
 
 	inline const std::vector<Triangles>& GetTriangles() const { return triangles; }
+
+	glm::vec3 TransformLocalPointToWorldSpace(const glm::vec3& localPoint) const
+	{
+		glm::vec4 worldPoint = modelTranslation * modelRotation * modelScale * glm::vec4(localPoint, 1);
+		return glm::vec3(worldPoint);
+	}
 
 	glm::vec3 CalculateInertiaTensor() const
 	{

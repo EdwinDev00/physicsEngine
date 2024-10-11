@@ -62,15 +62,17 @@ namespace scene
 		quad = std::make_shared<Quad>();
 
 		//Obj
-		GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(2, 2, 2), "../projects/GraphicV2/asset/plane.obj", "../projects/GraphicV2/texture/tile.png");
+		//GameObject* plane = new GameObject(glm::vec3(0, -.25f, 1), glm::vec3(0, 0, 0), glm::vec3(2, 2, 2), "../projects/GraphicV2/asset/plane.obj", true, "../projects/GraphicV2/texture/tile.png");
 		//GLTF
+		GameObject* ground = new GameObject(glm::vec3(0, -1, 0), glm::vec3(0, 0, 0), glm::vec3(15, 1.0f, 15), "../projects/GraphicV2/asset/Cube/Cube.gltf", true);
 		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 2, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 		GameObject* CubeGLTF2 = new GameObject(glm::vec3(2, 2, 2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 		//GameObject* helmGLTF = new GameObject(glm::vec3(2, 2, 2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/FlightHelmet/FlightHelmet.gltf");
 
 
 		//testing	
-		phyEngine->AddObject(plane);
+		//phyEngine->AddObject(plane);
+		phyEngine->AddObject(ground);
 		phyEngine->AddObject(CubeGLTF);
 		phyEngine->AddObject(CubeGLTF2);
 
@@ -237,6 +239,8 @@ namespace scene
 
 		ImGui::ListBoxFooter();
 		ImGui::DragFloat3("Angular velocity", &phyEngine->objects[inspectorSelected]->angularVelocity[0], 0.05f);
+		ImGui::DragFloat3("Velocity", &phyEngine->objects[inspectorSelected]->velocity[0], 0.05f);
+
 
 		ImGui::DragFloat3("Position", &phyEngine->objects[inspectorSelected]->GetPosition()[0],0.05f);
 		ImGui::DragFloat3("Rotation", &phyEngine->objects[inspectorSelected]->GetRotation()[0], 0.05f);

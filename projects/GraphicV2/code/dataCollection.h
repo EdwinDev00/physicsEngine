@@ -258,6 +258,7 @@ struct PolytopeData
 {
 	std::vector<glm::vec3> polytope; //vertices of the polytope //EXPANDING POLYTOPE LIST
 	std::vector<Face> face; // faces of the polytope, each with indices, normal, distance
+	std::vector<glm::vec3> supportA, supportB; //Support point for objA and B
 };
 
 struct Simplex
