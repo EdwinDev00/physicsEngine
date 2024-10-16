@@ -69,12 +69,12 @@ private:
 	glm::mat4 modelTranslation;
 	std::string name;
 
-	std::shared_ptr<Model> modelObject;
 
 	std::vector<Triangles> triangles;
 	
 	//AABB bounding
 public:
+	std::shared_ptr<Model> modelObject;
 	glm::mat4 transform;
 	AABB boundingbox;
 	glm::vec3 velocity;
@@ -83,6 +83,7 @@ public:
 	glm::vec3 angularVelocity;
 	glm::vec3 angularAcceleration;
 	glm::mat3 inertiaTensorInWorld;
+	bool isColliding = false;
 
 	//DEBUG COLOR (Change when collision is detected)
 	glm::vec4 debugC = glm::vec4(0, 0, 1, 1);
@@ -93,20 +94,27 @@ public:
 	void Draw(ShaderResource& program, Object::Camera& cam);
 	void OnUpdate(float deltaTime)
 	{
-		//DAMPING
-		float linearDamping = 1.0f; // slow down velocity over time
-		float angularDamping = 1.0f; // slow down angular velocity over time
 		velocity += acceleration * deltaTime; //Gravity 
 		position += velocity * deltaTime;
-		velocity *= linearDamping;
 		acceleration = glm::vec3(0.0f); // reset acceleration for next frame (forces are applied per frame)
 
-		ApplyRotation(angularVelocity * deltaTime);
-		angularVelocity *= angularDamping;
+		//float dampingFactor = 0.98f; // Damping factor to slow down velocity
+		// //If velocity is positive, decrease it until it approaches 0
+		//if (glm::length(velocity) > 0.0f)
+		//{
+		//	velocity *= dampingFactor;
 
+		//	// If the velocity is very small, stop the object (set velocity to zero)
+		//	if (glm::length(velocity) < 0.01f)
+		//	{
+		//		velocity = glm::vec3(0.0f); // Object is at rest
+		//	}
+		//}
+
+		ApplyRotation(angularVelocity * deltaTime);
 		//Update the AABB bounds according to the changes (translation (position) , scale)
 		boundingbox.UpdateBounds(transform);
-		Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), debugC, 4.0f);
+		//Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), debugC, 4.0f);
 	}
 
 	bool RayMeshIntersection(const Ray& ray, glm::vec3& hitpoint);

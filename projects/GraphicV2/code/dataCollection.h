@@ -251,15 +251,25 @@ struct Face //polytope face
 	std::array<int, 3> polytopeIndices = {}; //indices of the points in the polytope that forms this face
 	glm::vec3 normal;
 	float distance;
+
+	bool operator==(const Face& other) const {
+		return polytopeIndices == other.polytopeIndices && normal == other.normal && distance == other.distance;
+	}
 };
 
+struct SupportPoint
+{
+	glm::vec3 Asupport;
+	glm::vec3 Bsupport;
+	glm::vec3 minkowDiff;
+};
 
 struct PolytopeData
 {
-	std::vector<glm::vec3> polytope; //vertices of the polytope //EXPANDING POLYTOPE LIST
+	std::vector<SupportPoint> polytope;
 	std::vector<Face> face; // faces of the polytope, each with indices, normal, distance
-	std::vector<glm::vec3> supportA, supportB; //Support point for objA and B
 };
+
 
 struct Simplex
 {
@@ -267,7 +277,7 @@ struct Simplex
 		: m_size(0),m_points({})
 	{}
 
-	Simplex& operator=(const std::initializer_list<glm::vec3>& list)
+	Simplex& operator=(const std::initializer_list<SupportPoint>& list)
 	{
 		m_size = 0;
 
@@ -277,20 +287,20 @@ struct Simplex
 		return *this;
 	}
 
-	void push_front(const glm::vec3& point)
+	void push_front(const SupportPoint& point)
 	{
 		m_points = { point, m_points[0], m_points[1], m_points[2] };
 		m_size = std::min(m_size + 1, 4);
 	}
 
-	glm::vec3& operator[](int i) { return m_points[i]; }
+	SupportPoint& operator[](int i) { return m_points[i]; }
 
 	size_t size() const { return m_size; }
-	const std::array<glm::vec3,4>& getPoints() const { return m_points; }
+	const std::array<SupportPoint,4>& getPoints() const { return m_points; }
 
 	auto begin() const { return m_points.begin(); }
 	auto end() const { return m_points.end() - (4 - m_size); }
 private:
-	std::array<glm::vec3, 4> m_points;
+	std::array<SupportPoint, 4> m_points;
 	int m_size;
 };
