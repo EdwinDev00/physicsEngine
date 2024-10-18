@@ -61,7 +61,7 @@ namespace scene
 		
 		quad = std::make_shared<Quad>();
 
-		GameObject* ground = new GameObject(glm::vec3(0, -1, 0), glm::vec3(0, 0, 0), glm::vec3(15, 0.5f, 15), "../projects/GraphicV2/asset/Cube/Cube.gltf", true);
+		GameObject* ground = new GameObject(glm::vec3(0, -1, 0), glm::vec3(0, 0, 0), glm::vec3(7.0f, 1.0f, 7.0f), "../projects/GraphicV2/asset/Cube/Cube.gltf", true);
 		GameObject* CubeGLTF = new GameObject(glm::vec3(2, 2, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 		GameObject* CubeGLTF2 = new GameObject(glm::vec3(2, 2, 2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), "../projects/GraphicV2/asset/Cube/Cube.gltf");
 		
@@ -70,8 +70,6 @@ namespace scene
 		phyEngine->AddObject(ground);
 		phyEngine->AddObject(CubeGLTF);
 		phyEngine->AddObject(CubeGLTF2);
-
-
 
 		shader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/gBuffer.glsl");
 		quadShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/quad.glsl");
@@ -133,14 +131,14 @@ namespace scene
 		}
 
 		//Debug only RAY 
-		//glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
-		//if(hitObject)
-		//{
-		//	Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
-		//	Debug::DrawBox(hitPoint, glm::vec3(), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec4(0, 1, 0, 1), 2);
-		//}
-		//else
-		//	Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
+		glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
+		if(hitObject)
+		{
+			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
+			Debug::DrawBox(hitPoint, glm::vec3(), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec4(0, 1, 0, 1), 2);
+		}
+		else
+			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
 	}
 
 	void scene::SceneGLTF::OnRender()
@@ -233,9 +231,11 @@ namespace scene
 		}
 
 		ImGui::ListBoxFooter();
-		ImGui::DragFloat3("Angular velocity", &phyEngine->objects[inspectorSelected]->angularVelocity[0], 0.05f);
-		ImGui::DragFloat3("Velocity", &phyEngine->objects[inspectorSelected]->velocity[0], 0.05f);
-
+		if(phyEngine->objects[inspectorSelected]->mass != 0)
+		{
+			ImGui::DragFloat3("Angular velocity", &phyEngine->objects[inspectorSelected]->angularVelocity[0], 0.05f);
+			ImGui::DragFloat3("Velocity", &phyEngine->objects[inspectorSelected]->velocity[0], 0.05f);
+		}
 
 		ImGui::DragFloat3("Position", &phyEngine->objects[inspectorSelected]->GetPosition()[0],0.01f);
 		/*ImGui::DragFloat3("Rotation", &phyEngine->objects[inspectorSelected]->GetRotation()[0], 0.05f);
@@ -244,20 +244,13 @@ namespace scene
 		ImGui::DragFloat("Force Magnitude", &forceMagnitude, 0.1f);
 		ImGui::DragFloat3("Gravity Force", &phyEngine->gravity[0], 0.1f);
 
-
-		//ImGui::SliderInt("Current Light", &LightObjectInt, 0, totalLightCount);
-		//ImGui::DragFloat3("Light Position", &LightManager::Get()->GetLight(LightObjectInt)->position[0]);
-		//ImGui::ColorEdit4("Light color", &LightManager::Get()->GetLight(LightObjectInt)->color[0]);
+		ImGui::ColorEdit4("Light color", &LightManager::Get()->GetLight(LightObjectInt)->color[0]);
 		ImGui::DragFloat("Light intensity", &LightManager::Get()->GetLight(LightObjectInt)->intensity,0.1f);
 
 		ImGui::Checkbox("Enable Debug Draw", &RenderDebug);
-		ImGui::Checkbox("Enable Simplex Debug Draw", &RenderDebug);
-
-
-		ImGui::Checkbox("OrbitLight", &LightManager::Get()->GetLight(LightObjectInt)->bOrbit);
 		
 		ImGui::SetWindowPos(ImVec2(0, 100));
-		ImGui::SetWindowSize(ImVec2(400, 300));
+		ImGui::SetWindowSize(ImVec2(500, 500));
 		ImGui::End();
 	}
 }

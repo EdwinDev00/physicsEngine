@@ -42,11 +42,11 @@ class PhysicsEngine
 			const int maxIteration = 10;
 
 #ifndef NDEBUG
+			for (GameObject* obj : objects) //only for debug remove this later
+			{
+				Debug::DrawBox(obj->boundingbox.GetPosition(), glm::vec3(), obj->boundingbox.GetExtents(), obj->debugC, 1.0f);
+			}
 #endif
-			//for (GameObject* obj : objects) //only for debug remove this later
-			//{
-			//	Debug::DrawBox(obj->boundingbox.GetPosition(), glm::vec3(), obj->boundingbox.GetExtents(), obj->debugC, 1.0f);
-			//}
 
 				for(const auto& pair : potentialCollisions)
 				{
@@ -58,9 +58,6 @@ class PhysicsEngine
 					bool collision = GJK(objA,objB,simplexPs);
 					if(collision)
 					{
-						//collisionResolved = true;
-
-
 						objA.debugC = glm::vec4(1, 0, 1, 1);
 						objB.debugC = glm::vec4(1, 0, 1, 1);
 #ifndef NDEBUG
@@ -96,14 +93,12 @@ class PhysicsEngine
 						std::pair<glm::vec3, glm::vec3> collisionPoints;
 
 						//ERROR:PROBLEM WITH ROTATED OBJECT, CLOSEST FACE IS NOT FINDING THE BEST ONE (POTENTIAL ERROR IN EXPANDING POLYTOPE)
-						EPAV2(objA,objB,simplexPs, collisionNormal, penetrationDepth, collisionPoints);
-						SolveCollision(objA, objB, collisionNormal, penetrationDepth,collisionPoints);
+						if (EPAV2(objA, objB, simplexPs, collisionNormal, penetrationDepth, collisionPoints))
+							SolveCollision(objA, objB, collisionNormal, penetrationDepth,collisionPoints);
 
-						////JUST TO TEST
-						//objA.OnUpdate(deltaTime);
-						//objB.OnUpdate(deltaTime);
-
-
+						//JUST TO TEST
+					    objA.OnUpdate(deltaTime);
+						objB.OnUpdate(deltaTime);
 					}
 				}
 		}
@@ -128,12 +123,12 @@ class PhysicsEngine
 			glm::vec3 force = forceDirection * forceMagnitude;
 			obj->velocity += force / obj->mass;
 
-			////Calculate the vector from the center of mass to the hit point (r)
-			//glm::vec3 r = hitP - obj->boundingbox.GetPosition() ;
+			//Calculate the vector from the center of mass to the hit point (r)
+			glm::vec3 r = hitP - obj->boundingbox.GetPosition() ;
 
-			//// Calculate the torque: τ = r × F
-			//glm::vec3 torque = glm::cross(r, force);
-			//obj->angularVelocity += obj->inertiaTensorInWorld * torque;
+			// Calculate the torque: τ = r × F
+			glm::vec3 torque = glm::cross(r, force);
+			obj->angularVelocity += obj->inertiaTensorInWorld * torque;
 		}
 
 		void ApplyForce(GameObject* obj, const glm::vec3& forceDirection, float forceMagnitude)
@@ -230,7 +225,7 @@ class PhysicsEngine
 			}
 		}
 
-		void EPAV2(const GameObject& objA, const GameObject& objB,const Simplex& simplex, glm::vec3& collisionNormal, float& penetrationDepth, std::pair<glm::vec3, glm::vec3>& collisionPoints)
+		bool EPAV2(const GameObject& objA, const GameObject& objB,const Simplex& simplex, glm::vec3& collisionNormal, float& penetrationDepth, std::pair<glm::vec3, glm::vec3>& collisionPoints)
 		{
 			PolytopeData polytopeData = InitalizePolytopeV2(simplex);
 			int iterationCount = 100;
@@ -238,16 +233,17 @@ class PhysicsEngine
 			// WHILE LOOP 
 			while(iterationCount--)
 			{
-				Debug::ClearQueue();
-				////----------- FIND CLOSEST FACE --------------------------------
+				//Debug::ClearQueue();
+				//----------- FIND CLOSEST FACE --------------------------------
 
-				float minDistance = -FLT_MAX; //polytopeData.face[0].distance;
+				float minDistance = dot(polytopeData.polytope[polytopeData.face[closestFaceIndex].polytopeIndices[0]].minkowDiff, normalize(polytopeData.face[closestFaceIndex].normal));//polytopeData.face[0].distance;
 
-				for(int i = 1; i < polytopeData.face.size(); i++)
+				for(int i = 0; i < polytopeData.face.size(); i++)
 				{
-					if(polytopeData.face[i].distance < minDistance)
+					float distance = dot(polytopeData.polytope[polytopeData.face[i].polytopeIndices[0]].minkowDiff, normalize(polytopeData.face[i].normal));
+					if(distance < minDistance)
 					{
-						minDistance = polytopeData.face[i].distance;
+						minDistance = distance;
 						closestFaceIndex = i;
 					}
 				}
@@ -256,17 +252,15 @@ class PhysicsEngine
 #endif
 
 				VisualizePolytopeWithClosestFace(polytopeData, closestFaceIndex);
-				glm::vec3 closestFaceNormal = polytopeData.face[closestFaceIndex].normal;
+				glm::vec3 closestFaceNormal = normalize(polytopeData.face[closestFaceIndex].normal);
 				float closestFaceDistance = polytopeData.face[closestFaceIndex].distance;
 
 				// --------- FIND THE NEW SUPPORT POINT -----------------------------
 				// Calculate the support point along the closest face normal
 				SupportPoint supportPoint = Support(objA, objB, closestFaceNormal);
 				float newDistance = glm::dot(closestFaceNormal,supportPoint.minkowDiff);
-				float con = newDistance - closestFaceDistance;
-				if ( con < 1e-6f)
+				if (newDistance - closestFaceDistance < 1e-6f)
 				{
-					//ERROR when handlesimplex get normalized direction leading to not getting in here but fix gjk rotation problem
 					collisionNormal = closestFaceNormal;
 
 					// ----------------- CALCULATE COLLISION POINTS -------------------
@@ -280,79 +274,82 @@ class PhysicsEngine
 					SupportPoint C = polytopeData.polytope[closestFace.polytopeIndices[2]];
 
 					// Project the support point onto the triangle (M1, M2, M3) to get the barycentric coordinates
-					glm::vec3 closestBary = ProjectToTriangle(glm::vec3(), A.minkowDiff, B.minkowDiff, C.minkowDiff);
+					glm::vec3 projectedPoint;
+					float u, v, w;
+					glm::vec3 closestBary = ProjectToTriangle(glm::vec3(0,0,0), A.minkowDiff, B.minkowDiff, C.minkowDiff); //MUST OF THE CONNECTION IS RIGHT THOSE WHO ARE FAULT IS DUE TO CLOSETBARY IS INF
+					////IF NAN
+					//if (closestBary.x != closestBary.x || closestBary.y != closestBary.y || closestBary.z != closestBary.z)
+					//	return false;
 
 					// ----------------------- Barycentric interpolation for A and B -----------------------
-
-					// Calculate the collision points on object A and B using barycentric interpolation
-					glm::vec3 worldCollisionPointA = Cartesian(closestBary, A.Asupport, B.Asupport, C.Asupport);
-					glm::vec3 worldCollisionPointB = Cartesian(closestBary, A.Bsupport, B.Bsupport, C.Bsupport);
+					if (!Barycentric(A.minkowDiff, B.minkowDiff, C.minkowDiff, closestBary, u, v, w)) return false;
+					
+					glm::vec3 worldCollisionPointA = Cartesian(glm::vec3(u,v,w), A.Asupport, B.Asupport, C.Asupport);
+					glm::vec3 worldCollisionPointB = Cartesian(glm::vec3(u,v,w), A.Bsupport, B.Bsupport, C.Bsupport);
 					
 					// Store the calculated collision points
 					collisionPoints = std::make_pair(worldCollisionPointA, worldCollisionPointB);
 
+#ifndef NDEBUG
 					// Debug: Draw the exact collision points
 					Debug::DrawBox(worldCollisionPointA, objA.GetRotation(), glm::vec3(0.1f), glm::vec4(1, 0, 0, 1), 0.02f); // Red box for objA
 					Debug::DrawBox(worldCollisionPointB, objB.GetRotation(), glm::vec3(0.1f), glm::vec4(0, 1, 0, 1), 0.02f); // Green box for objB
 					Debug::DrawLine(worldCollisionPointA, worldCollisionPointB, glm::vec4(1, 0, 0, 0), 2);
+#endif // !NDEBUG
 
 					// Calculate the penetration depth
-					penetrationDepth = closestFaceDistance + 0.001f;//glm::length(worldCollisionPointA - worldCollisionPointB);
-					//penetrationDepth = glm::distance(worldCollisionPointA ,worldCollisionPointB); //adding a bias value
-					//std::cout << penetrationDepth << '\n';
-					return;
+					penetrationDepth = closestFaceDistance;
+					return true;
 				}
 				
 				//-------------- EXPANDING POLYTOPE EDGE BASED -------------------------
-				ExpandPolytope(polytopeData, closestFaceIndex, supportPoint);
+				if (!ExpandPolytope(polytopeData, closestFaceIndex, supportPoint))
+						return false;
 
 			}
+			return false;
 		}
 
 		void SolveCollision(GameObject& objA, GameObject& objB, glm::vec3& collisionNormal, const float& penetrationDepth, std::pair<glm::vec3, glm::vec3> collisionPoints)
 		{
-			/*
-			* NOTE: WORKS PERFECT WHEN THE OBJECT HAS NO ANGULAR VELOCITY (CAUSE EPA RETURNING FAULTY CORRECT PEN AND NORMAL)
-			*/
-
 			//If both objects are immovable, skip
 			if (objA.mass + objB.mass <= 0.0f) return;
 
-			collisionNormal = normalize(collisionNormal);
-			const float contactConstraint = dot(collisionNormal, objA.GetPosition() - objB.GetPosition());
 			const glm::vec3 contactPA = collisionPoints.first;
 			const glm::vec3 contactPB = collisionPoints.second;
+		
 			const glm::vec3 rA = contactPA - objA.GetPosition(); //radius vector / relation vector
 			const glm::vec3 rB = contactPB - objB.GetPosition();
 
 			//Contact velocity: linear velocity + cross angular , radius vector
 			const glm::vec3 contactAVelocity = collisionNormal * (objA.velocity + cross(objA.angularVelocity, rA)); //Satisfy the contact constraint stopping vector
 			const glm::vec3 contactBVelocity = collisionNormal * (objB.velocity + cross(objB.angularVelocity, rB));
-
-			////TESTING THE VELOCITY CONSTRAINT 
-			//glm::vec3 velocityConstraint = dot(collisionNormal, contactAVelocity - contactBVelocity) + cross(rA - rB, collisionNormal) * (objA.angularVelocity - objB.angularVelocity);
 			
+			//CALCULATE PENETRATION CORRECTION
+			const float percent = 0.99f;
+			const float slop = 0.09f;
+
+			glm::vec3 correction = collisionNormal * percent
+				* std::max(penetrationDepth - slop, 0.0f)
+				/ (objA.mass + objB.mass);
 
 			const float relativeVelocity = dot(collisionNormal, contactAVelocity - contactBVelocity);
-			if (relativeVelocity == 0) return;
-			//std::cout << "relativeVelocity " << relativeVelocity << '\n'; //TESTING THE EPA AND PENETRATION RESOLUTION //REENABLE WHEN WORKING WITH VELOCITY
 
-			//if (relativeVelocity < 0.1f) //Seperation  A-B = negative velocity seperated, positive = colliding
-			//{
-			//	std::cout << "seperated " << '\n';
-			//	objA.isColliding = false;
-			//	objB.isColliding = false;
-			//	return;
-			//}
-			//if (relativeVelocity - 0.02f == 0) //at rest
-			//{
-			//	std::cout << "Resting " << '\n';
-			//	objA.isColliding = true;
-			//	objB.isColliding = true;
-			//	objA.velocity.y = 0;
-			//	objB.velocity.y = 0;
-			//	return;
-			//}
+			//configure the seperation threshold
+			if (relativeVelocity < 0.001f) //Seperation  A-B = negative velocity seperated, positive = colliding
+			{
+				return;
+			}
+			if (relativeVelocity == 0) //at rest
+			{
+				objA.isColliding = true;
+				objB.isColliding = true;
+				if (objA.mass > 0.0f)
+					objA.GetPosition() -= correction * 1.0f/objA.mass; // Move A proportional to A's mass
+				if (objB.mass > 0.0f)
+					objB.GetPosition() += correction * 1.0f/objB.mass; // Move B proportional to B's mass
+				return;
+			}
 
 			//Calculate the effective mass (brute force this for now)
 			float effectiveMassA = 0; float effectiveMassB = 0;
@@ -384,52 +381,20 @@ class PhysicsEngine
 			float angularB = dot(collisionNormal, crossAngularB);
 			
 			float denominator = invMassA + invMassB + angularA + angularB;
-			if (denominator == 0) return;
-			const float impulse = -(1.0f + restitutionCoefficient) * relativeVelocity / denominator; //it became nan 0 division when colliding with ground
-			//std::cout << "impulse FORCE " << impulse << '\n';
-			
-			//APPLY THE IMPULS
-			ApplyForce(&objA, collisionNormal, impulse);
-			ApplyForce(&objB, -collisionNormal, impulse);
-			
-			//RESOLVE THE PENETRATION
-			const float percent = 0.99f;
-			const float slop = 0.09f;
 
-			glm::vec3 correction = collisionNormal * percent
-				* std::max(penetrationDepth - slop, 0.0f)
-				/ (objA.mass + objB.mass);
-
+			const float impulse = -(1.0f + restitutionCoefficient) * relativeVelocity / denominator;
+			const glm::vec3 angularImpulse = cross(impulse * collisionNormal,contactPA - contactPB );
 
 			if (objA.mass > 0.0f ) {
 				objA.GetPosition() -= correction * invMassA; // Move A proportional to A's mass
-				//objA.angularVelocity = crossAngularA * invMassA;
-
+				objA.angularVelocity += objA.inertiaTensorInWorld * angularImpulse;
 			}
 			if (objB.mass > 0.0f) {
 				objB.GetPosition() += correction * invMassB; // Move B proportional to B's mass
-				//objB.angularVelocity = crossAngularB * invMassB;
-
+				objB.angularVelocity += objB.inertiaTensorInWorld * angularImpulse;
 			}
-
-
-		//	// ------------- FRICTION HANDLING (REALISTIC SLIDING) -------------
-
-		//	// Calculate tangential velocity (velocity not along the normal)
-		//	glm::vec3 tangentVelocity = relativeVelocity - velAlongNormal * collisionNormal;
-		//	glm::vec3 tangent = glm::normalize(tangentVelocity);
-
-		//	// Apply friction only if there is a tangential velocity
-		//	if (glm::length(tangentVelocity) > velocityThreshold) {
-		//		float frictionCoefficient = 0.5f; // Adjust as needed for friction amount
-		//		float frictionImpulseScalar = glm::length(tangentVelocity) / (invMassA + invMassB);
-
-		//		// Apply friction impulse in the opposite direction of the tangent
-		//		glm::vec3 frictionImpulse = -frictionCoefficient * frictionImpulseScalar * tangent;
-
-		//		// Apply friction impulse
-		//		if (objA.mass > 0.0f) objA.velocity -= invMassA * frictionImpulse;
-		//		if (objB.mass > 0.0f) objB.velocity += invMassB * frictionImpulse;
-		//	}
+			//APPLY THE IMPULS
+			ApplyForce(&objA, collisionNormal, impulse);
+			ApplyForce(&objB, -collisionNormal, impulse);
 		}
 };

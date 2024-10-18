@@ -45,8 +45,6 @@ namespace scene
 		DirectionalLight* Sun;
 		
 		bool RenderDebug = true;
-		bool renderSimplex = true;
-
 
 		PhysicsEngine* phyEngine;
 		//std::vector<GameObject*> objects; //list of all the object in the current scene

@@ -149,6 +149,17 @@ GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale,s
 		}
 	}
 
+	for(const auto& triangle : triangles)
+	{
+		for(const auto& vertex : triangle.vertices)
+		{
+			if(  colliderVertices.end() == std::find(colliderVertices.begin(), colliderVertices.end(), vertex))
+			{
+				colliderVertices.push_back(vertex);
+			}
+		}
+	}
+
 	//set the aabb bounds exactly like the modeled size (include matching in scale)
 	boundingbox = AABB(modelObject);
 

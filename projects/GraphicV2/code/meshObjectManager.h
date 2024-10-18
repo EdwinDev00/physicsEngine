@@ -84,6 +84,7 @@ public:
 	glm::vec3 angularAcceleration;
 	glm::mat3 inertiaTensorInWorld;
 	bool isColliding = false;
+	std::vector<glm::vec3> colliderVertices; 
 
 	//DEBUG COLOR (Change when collision is detected)
 	glm::vec4 debugC = glm::vec4(0, 0, 1, 1);

@@ -251,10 +251,6 @@ struct Face //polytope face
 	std::array<int, 3> polytopeIndices = {}; //indices of the points in the polytope that forms this face
 	glm::vec3 normal;
 	float distance;
-
-	bool operator==(const Face& other) const {
-		return polytopeIndices == other.polytopeIndices && normal == other.normal && distance == other.distance;
-	}
 };
 
 struct SupportPoint

@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <math.h>
 //#include "config.h"
 
 //#define EPSILON 1e-8
@@ -86,21 +87,21 @@ inline glm::vec3 GetFurthestPointInDirection(const GameObject& obj, const glm::v
 {
     glm::vec3 furthestPoint = glm::vec3();
     float maxDistance = -FLT_MAX;
-    for (auto& mesh : obj.modelObject->meshes)
-    {
-        for (auto& data : mesh.primitives)
-        {
-            for (int i = 0; i < data.vertices.size(); i += 3)
+    //for (auto& mesh : obj.modelObject->meshes)
+    //{
+    //    for (auto& data : mesh.primitives)
+    //    {
+            for (int i = 0; i < obj.colliderVertices.size(); i ++)
             {
-                float distance = glm::dot(data.vertices[i].position, direction);
+                float distance = glm::dot(obj.colliderVertices[i], direction);
                 if (distance > maxDistance)
                 {
                     maxDistance = distance;
-                    furthestPoint = data.vertices[i].position;
+                    furthestPoint = obj.colliderVertices[i];
                 }
             }
-        }
-    }
+    /*    }
+    }*/
 
    /* for(const Triangles& triangle : obj.GetTriangles())
         for(const glm::vec3& vertex : triangle.vertices)
@@ -154,37 +155,6 @@ inline bool LineCase(Simplex& simplex, glm::vec3& direction)
     return false;
 }
 
-//inline bool LineCase(Simplex& simplex, glm::vec3& direction)
-//{
-//    glm::vec3 A = simplex[0]; // Last added point to the simplex (most recent point)
-//    glm::vec3 B = simplex[1]; // Second point in the line simplex
-//
-//    glm::vec3 AB = B - A; // Vector from A to B (forming the edge of the line)
-//    glm::vec3 A0 = -A; // Vector from A to the origin (find if origin is in this direction)
-//
-//    // if the origin is in the direction of the AB, move towards it
-//    if (glm::dot(AB, A0) > 0) 
-//    { 
-//        // Project the search direction towards the origin, in the direction of AB
-//        glm::vec3 crossProd = glm::cross(AB, A0);
-//        //if (glm::length(crossProd) < 1e-6f) {
-//        //    // Handle case where the cross product is nearly zero
-//          //  direction = A0;
-//        //}
-//        //else {
-//            direction = glm::cross(crossProd, AB);
-//        //}
-//    }
-//    else 
-//    {
-//        //otherwise, the simplex is just the point A
-//        simplex = { A };
-//        direction = A0; // Update the direction to point from A to the origin (AO)
-//
-//    }
-//    return false;
-//}
-
 inline bool TriangleCase(Simplex& simplex, glm::vec3& direction)
 {
     SupportPoint a = simplex[0];
@@ -227,104 +197,6 @@ inline bool TriangleCase(Simplex& simplex, glm::vec3& direction)
 
     return false;
 }
-
-//inline bool
-//TriangleCase(Simplex& simplex, glm::vec3& dir) {
-//    glm::vec3 a = simplex[0];
-//    glm::vec3 b = simplex[1];
-//    glm::vec3 c = simplex[2];
-//
-//    glm::vec3 ab = b - a;
-//    glm::vec3 ac = c - a;
-//    glm::vec3 ao = -a;
-//
-//   glm::vec3 abc = cross(ab, ac);
-//
-//    if (dot(cross(abc, ac), ao) > 0) {
-//        if (dot(ac, ao) > 0) {
-//            simplex = { a, c };
-//            dir = cross(cross(ac, ao), ac);
-//        }
-//        else
-//        {
-//            return LineCase(simplex = { a, b }, dir);
-//        }
-//    }
-//    else {
-//        if (dot(cross(ab, abc), ao) > 0)
-//            return LineCase(simplex = { a, b }, dir);
-//
-//        if (dot(abc, ao))
-//            dir = abc;
-//
-//        else {
-//            simplex = { a, c, b };
-//            dir = -abc;
-//        }
-//    }
-//
-//    return false;
-//}
-
-//inline bool TriangleCase(Simplex& simplex, glm::vec3& direction) 
-//{
-//    glm::vec3 A = simplex[0];
-//    glm::vec3 B = simplex[1];
-//    glm::vec3 C = simplex[2];
-//
-//    glm::vec3 AB = B - A;
-//    glm::vec3 AC = C - A;
-//    glm::vec3 A0 = -A;
-//
-//    //Compute the normal of the triangle
-//    glm::vec3 ABC_normal = glm::cross(AB, AC);
-//    glm::vec3 ACB_normal = glm::cross(AB, AC);
-//    glm::vec3 ABC_normal = glm::cross(AB, AC);
-//
-//    //Origin is above or below triangle, check which side the triangle's plane faces
-//    if(glm::dot(ABC_normal,A0) > 0)
-//    {
-//        //Origin is above, keep all three point
-//        direction = ABC_normal;
-//    }
-//    else
-//    {
-//        //Origin is below the triangle (flips the triangle winding order)
-//        simplex = { A,C,B };
-//        direction = -ABC_normal;
-//    }
-//
-//
-//    ////Determine which side of the triangle the origin is on
-//    //glm::vec3 ABC_normal_toward_origin = glm::cross(ABC_normal, AC);
-//
-//    ////Check if the origin is on the AC side of the triangle
-//    //if(glm::dot(ABC_normal_toward_origin,A0) > 0)
-//    //{
-//    //    //Origin is outside AC
-//    //    simplex = { A,C };
-//    //    direction = glm::cross(glm::cross(AC, A0), AC); //New direction is perpendicular to AC
-//    //}
-//    //else
-//    //{
-//        ////Check if the origin is on the AB side of the triangle
-//        //glm::vec3 ABC_normal_other_side = glm::cross(AB, ABC_normal);
-//        //if(glm::dot(ABC_normal_other_side,A0) > 0)
-//        //{
-//        //    //Origin is outside AB
-//        //    simplex = { A,B };
-//        //    direction = glm::cross(glm::cross(AB, A0), AB);
-//        //}
-//        //else
-//        //{
-//
-//
-//       // }
-//    //}
-//
-//    return false;
-//}
-
 
 inline bool TetrahedronCase(Simplex& simplex, glm::vec3& direction)
 {
@@ -450,10 +322,15 @@ inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex)
 
     std::vector<std::array<int, 3>> indices =
     {
-        {0, 1, 2}, // Reversed order for face {0, 1, 2}
-        {0, 3, 1}, // Reversed order for face {0, 3, 1}
-        {0, 2, 3}, // Reversed order for face {0, 2, 3}
-        {1, 3, 2}  // Reversed order for face {1, 3, 2}
+        {0, 1, 2},
+        {0, 3, 1}, 
+        {0, 2, 3}, 
+        {1, 3, 2}
+
+        //{2, 1, 0},
+        //{1, 3, 0},
+        //{3, 2, 0},
+        //{2, 3, 1}
     };
 
     for(const auto& faceIndexSet :indices)
@@ -466,7 +343,7 @@ inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex)
 
 
 //EXPANDING LOGIC
-inline void ExpandPolytope(PolytopeData& data, int& closestFaceIndex, const SupportPoint& supportPoint)
+inline bool ExpandPolytope(PolytopeData& data, int& closestFaceIndex, const SupportPoint& supportPoint)
 {
     const auto& closestFace = data.face[closestFaceIndex];
     //Add the new vertex to the polytope
@@ -480,9 +357,11 @@ inline void ExpandPolytope(PolytopeData& data, int& closestFaceIndex, const Supp
     AddIfUniqueEdges(uniqueEdge, closestFace.polytopeIndices, 1, 2);
     AddIfUniqueEdges(uniqueEdge, closestFace.polytopeIndices, 2, 0);
 
+    if (uniqueEdge.empty())
+        return false;
+
     data.face.erase(data.face.begin() + closestFaceIndex);
 
-    //IT SHOULD CREATE ONLY ONE NEW FACE WHICH CONNECTS THE UNIQUE ONE TO THIS FACE
     std::vector<Face> newFaces;
     for(const auto& edge : uniqueEdge)
     {
@@ -493,45 +372,45 @@ inline void ExpandPolytope(PolytopeData& data, int& closestFaceIndex, const Supp
         if (glm::dot(newFace.normal, data.polytope[edge.first].minkowDiff) < 0) newFace.normal = -newFace.normal;
         //newFace.normal = CalculateFaceNormal(data.polytope[edge.first].minkowDiff, data.polytope[edge.second].minkowDiff, supportPoint.minkowDiff); // Calculate new face normal
         newFace.distance = glm::dot(newFace.normal, supportPoint.minkowDiff); // Calculate the distance of the face to the origin
-        newFaces.push_back(newFace);
         //newFaces.push_back(CreateFace(edge.first, edge.second, newVertexIndex, data.polytope));
+        newFaces.push_back(newFace);
     }
-
 
     // Add the new faces to the polytope's face list
     data.face.insert(data.face.end(), newFaces.begin(), newFaces.end());
-
-    //// Recompute the closest face
-    //float minDistance = FLT_MAX;
-    //int newClosestFaceIndex = -1;
+    return true;
+    //// recompute the closest face
+    //float mindistance = FLT_MAX;
+    //int newclosestfaceindex = 0;
     //for (int i = 0; i < data.face.size(); ++i) {
-    //    if (data.face[i].distance < minDistance) {
-    //        minDistance = data.face[i].distance;
-    //        newClosestFaceIndex = i;
+    //    if (data.face[i].distance < mindistance) {
+    //        mindistance = data.face[i].distance;
+    //        newclosestfaceindex = i;
     //    }
     //}
 
-    //// Update the closest face index (this face will be expanded next)
-    //closestFaceIndex = newClosestFaceIndex;
+    //// update the closest face index (this face will be expanded next)
+    //closestFaceIndex = newclosestfaceindex;
+    //return true;
 }
 
 //VISUALIZECLOSEST FACE
 inline void VisualizePolytopeWithClosestFace(const PolytopeData& data, const int closestFaceIndex)
 {
-    //Visualize the whole polytope
-    for (const Face& face : data.face)
-    {
-        glm::vec3 A = data.polytope[face.polytopeIndices[0]].minkowDiff;
-        glm::vec3 B = data.polytope[face.polytopeIndices[1]].minkowDiff;
-        glm::vec3 C = data.polytope[face.polytopeIndices[2]].minkowDiff;
+    ////Visualize the whole polytope
+    //for (const Face& face : data.face)
+    //{
+    //    glm::vec3 A = data.polytope[face.polytopeIndices[0]].minkowDiff;
+    //    glm::vec3 B = data.polytope[face.polytopeIndices[1]].minkowDiff;
+    //    glm::vec3 C = data.polytope[face.polytopeIndices[2]].minkowDiff;
 
-        // Draw the edges of the new face
-        Debug::DrawLine(-A, -B, glm::vec4(0, 1, 1, 1), 3); // Cyan for the edges
-        Debug::DrawLine(-B, -C, glm::vec4(0, 1, 1, 1), 3);
-        Debug::DrawLine(-C, -A, glm::vec4(0, 1, 1, 1), 3);
+    //    // Draw the edges of the new face
+    //    Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3); // Cyan for the edges
+    //    Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
+    //    Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
+    //}
 
 
-    }
 
     //visualize the closest face and its normal
     const auto& closestFace = data.face[closestFaceIndex];
@@ -542,9 +421,9 @@ inline void VisualizePolytopeWithClosestFace(const PolytopeData& data, const int
     glm::vec3 normal = normalize(data.face[closestFaceIndex].normal);
 
     // Highlight the edges of the closest face in green
-    Debug::DrawLine(-A, -B, glm::vec4(0, 1, 0, 1), 3); // Green for edges
-    Debug::DrawLine(-B, -C, glm::vec4(0, 1, 0, 1), 3); // Green for edges
-    Debug::DrawLine(-C, -A, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+    Debug::DrawLine(A, B, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+    Debug::DrawLine(B, C, glm::vec4(0, 1, 0, 1), 3); // Green for edges
+    Debug::DrawLine(C, A, glm::vec4(0, 1, 0, 1), 3); // Green for edges
 
     // Highlight the normal of the closest face in green
     glm::vec3 centroid = (A + B + C) / 3.0f; // Calculate the centroid of the face
@@ -556,7 +435,68 @@ Cartesian(glm::vec3 const& b, glm::vec3 const& p0, glm::vec3 const& p1, glm::vec
     return p0 * b.x + p1 * b.y + p2 * b.z;
 }
 
+inline bool Barycentric(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& p, float& u, float& v, float& w)
+{
+    glm::vec3 v0 = b - a, v1 = c - a, v2 = p - a;
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    
+    if (denom == 0)
+    {
+        std::cout << "denom 0\n";
+        return false;
+    }
+
+    if(isinf(denom))
+    {
+        std::cout << "bary inf\n";
+        return false;
+    }
+
+    if (denom != denom)
+    {
+        std::cout << "bary nan\n";
+        return false;
+    }
+    v = (d11 * d20 - d01 * d21) / denom;
+    w = (d00 * d21 - d01 * d20) / denom;
+    u = 1.0f - v - w;
+
+    if (u != u || v != v || w != w)
+    {
+        std::cout << "bary ERROR \n";
+        return false;
+    }
+    return true;
+}
+
 inline glm::vec3
+ProjectToTriangle(glm::vec3 const& p, glm::vec3 const& a, glm::vec3 const& b, glm::vec3 const& c) {
+    // Check for degenerate triangle
+
+    // Continue with the projection as before
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+
+    glm::vec3 crossProduct = glm::cross(ab, ac);
+
+    float areaSquared = glm::dot(crossProduct, crossProduct);
+    if( areaSquared < 1e-6f) return glm::vec3();
+
+    glm::vec3 normal = glm::normalize(glm::cross(ab, ac)); // Normal of the triangle plane
+
+    float distanceToPlane = glm::dot(normal, p - a);
+    glm::vec3 projectedPoint = p - normal * distanceToPlane;
+
+    return projectedPoint;
+}
+
+
+/*inline glm::vec3
 ProjectToTriangle(glm::vec3 const& p, glm::vec3 const& a, glm::vec3 const& b, glm::vec3 const& c) {
     glm::vec3 n, q, r, t;
     q = b - a;
@@ -574,6 +514,11 @@ ProjectToTriangle(glm::vec3 const& p, glm::vec3 const& a, glm::vec3 const& b, gl
 
     const float denom = wa + wb + wc;
 
-    return glm::vec3(wa / denom, wb / denom, wc / denom);
-}
+    glm::vec3 test = glm::vec3(wa / denom, wb / denom, wc / denom);
+
+    if (isinf(test.x) || isinf(test.y) || isinf(test.z))
+        std::cout << "CUNT " << std::endl;
+
+    return test;
+}  */ 
 #pragma endregion
