@@ -35,10 +35,9 @@ namespace scene
 		//look at the ray direction debug 
 		std::shared_ptr<Ray> ray;
 		GameObject* hitObject = nullptr; //End refactor it to be local variable
-		float forceMagnitude = 15.0f;
+		float forceMagnitude = 25.0f;
 
 	private:
-
 		std::shared_ptr<ShaderResource> shader;
 		std::shared_ptr<ShaderResource> quadShader;
 		std::shared_ptr<ShaderResource> lightShader;
@@ -47,7 +46,6 @@ namespace scene
 		bool RenderDebug = true;
 
 		PhysicsEngine* phyEngine;
-		//std::vector<GameObject*> objects; //list of all the object in the current scene
 		Object::Camera* cam;
 
 		std::shared_ptr<GBuffer> gBuffer;

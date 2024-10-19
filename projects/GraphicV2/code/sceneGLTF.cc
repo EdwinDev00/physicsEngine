@@ -236,18 +236,18 @@ namespace scene
 			ImGui::DragFloat3("Angular velocity", &phyEngine->objects[inspectorSelected]->angularVelocity[0], 0.05f);
 			ImGui::DragFloat3("Velocity", &phyEngine->objects[inspectorSelected]->velocity[0], 0.05f);
 		}
-
 		ImGui::DragFloat3("Position", &phyEngine->objects[inspectorSelected]->GetPosition()[0],0.01f);
-		/*ImGui::DragFloat3("Rotation", &phyEngine->objects[inspectorSelected]->GetRotation()[0], 0.05f);
-		ImGui::DragFloat3("Scale", &phyEngine->objects[inspectorSelected]->GetScale()[0], 0.05f);*/
-
 		ImGui::DragFloat("Force Magnitude", &forceMagnitude, 0.1f);
-		ImGui::DragFloat3("Gravity Force", &phyEngine->gravity[0], 0.1f);
+		
+		if(phyEngine->enableGravity)
+			ImGui::DragFloat3("Gravity Force", &phyEngine->gravity[0], 0.1f);
 
 		ImGui::ColorEdit4("Light color", &LightManager::Get()->GetLight(LightObjectInt)->color[0]);
 		ImGui::DragFloat("Light intensity", &LightManager::Get()->GetLight(LightObjectInt)->intensity,0.1f);
 
 		ImGui::Checkbox("Enable Debug Draw", &RenderDebug);
+		ImGui::Checkbox("Enable gravity", &phyEngine->enableGravity);
+
 		
 		ImGui::SetWindowPos(ImVec2(0, 100));
 		ImGui::SetWindowSize(ImVec2(500, 500));

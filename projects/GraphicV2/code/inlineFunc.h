@@ -7,7 +7,6 @@
 
 #pragma region RAY
 
-
 inline bool RayIntersectAABB(const Ray& ray, const AABB& aabb)
 {
 	glm::vec3 rayDir = ray.direction;
@@ -32,45 +31,6 @@ inline bool RayIntersectAABB(const Ray& ray, const AABB& aabb)
 	return tNear <= tFar && tFar >= 0;
 }
 
-//inline bool RayIntersectAABB(const Ray& ray, const AABB& aabb)
-//{
-//	glm::vec3 rayDir = ray.direction;
-//
-//	if (glm::length(rayDir) != 1.0f)
-//		rayDir = glm::normalize(ray.direction);
-//
-//	//brute force implementation
-//	float tmin = (aabb.min.x - ray.origin.x) / rayDir.x;
-//	float tmax = (aabb.max.x - ray.origin.x) / rayDir.x;
-//	if (tmin > tmax) std::swap(tmin, tmax);
-//	float tymin = (aabb.min.y - ray.origin.y) / rayDir.y;
-//	float tymax = (aabb.max.y - ray.origin.y) / rayDir.y;
-//	if (tymin > tymax) std::swap(tymin, tymax);
-//	if ((tmin > tymax) || (tymin > tmax))
-//		return false;
-//
-//	if (tymin > tmin)
-//		tmin = tymin;
-//
-//	if (tymax < tmax)
-//		tmax = tymax;
-//
-//	float tzmin = (aabb.min.z - ray.origin.z) / rayDir.z;
-//	float tzmax = (aabb.max.z - ray.origin.z) / rayDir.z;
-//	if (tzmin > tzmax) std::swap(tzmin, tzmax);
-//	if ((tmin > tzmax) || (tzmin > tmax)) return false;
-//
-//	// Check if the ray starts inside the AABB
-//	if (ray.origin.x >= aabb.min.x && ray.origin.x <= aabb.max.x &&
-//		ray.origin.y >= aabb.min.y && ray.origin.y <= aabb.max.y &&
-//		ray.origin.z >= aabb.min.z && ray.origin.z <= aabb.max.z)
-//	{
-//		return true; // Ray starts inside the AABB, so it's a hit
-//	}
-//
-//	return true;
-//}
-
 // EXHANGE THE LOGIC INSIDE OBJ MESH INTERSECTION OF TRIANGLE INTERSECTION AND BUT IT INSIDE HERE LATER
 //inline bool RayTriangleIntersection(const Ray& ray, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t, glm::vec3& hitPoint)
 //{
@@ -87,32 +47,27 @@ inline glm::vec3 GetFurthestPointInDirection(const GameObject& obj, const glm::v
 {
     glm::vec3 furthestPoint = glm::vec3();
     float maxDistance = -FLT_MAX;
-    //for (auto& mesh : obj.modelObject->meshes)
-    //{
-    //    for (auto& data : mesh.primitives)
-    //    {
-            for (int i = 0; i < obj.colliderVertices.size(); i ++)
-            {
-                float distance = glm::dot(obj.colliderVertices[i], direction);
-                if (distance > maxDistance)
-                {
-                    maxDistance = distance;
-                    furthestPoint = obj.colliderVertices[i];
-                }
-            }
-    /*    }
-    }*/
 
-   /* for(const Triangles& triangle : obj.GetTriangles())
-        for(const glm::vec3& vertex : triangle.vertices)
+    for (int i = 0; i < obj.colliderVertices.size(); i ++)
+    {
+        float distance = glm::dot(obj.colliderVertices[i], direction);
+        if (distance > maxDistance)
         {
-            float distance = glm::dot(vertex, direction);
-            if(distance > maxDistance)
-            {
-                maxDistance = distance;
-                furthestPoint = vertex;
-            }
-        }*/
+            maxDistance = distance;
+            furthestPoint = obj.colliderVertices[i];
+        }
+    }
+
+    //for(const Triangles& triangle : obj.GetTriangles())
+    //    for(const glm::vec3& vertex : triangle.vertices)
+    //    {
+    //        float distance = glm::dot(vertex, direction);
+    //        if(distance > maxDistance)
+    //        {
+    //            maxDistance = distance;
+    //            furthestPoint = vertex;
+    //        }
+    //    }
     return furthestPoint;
 }
 
@@ -229,51 +184,6 @@ inline bool TetrahedronCase(Simplex& simplex, glm::vec3& direction)
     return true;
 }
 
-//inline bool TetrahedronCase(Simplex& simplex, glm::vec3& direction) 
-//{
-//    glm::vec3 A = simplex[0];  //Last added point
-//    glm::vec3 B = simplex[1];
-//    glm::vec3 C = simplex[2];
-//    glm::vec3 D = simplex[3];
-//
-//    glm::vec3 AB = B - A;
-//    glm::vec3 AC = C - A;
-//    glm::vec3 AD = D - A;
-//    glm::vec3 AO = -A;
-//
-//    //Compute normals for each face of the tetrahedron
-//    glm::vec3 ABC_normal = glm::cross(AB, AC);  //Triangle ABC
-//    glm::vec3 ACD_normal = glm::cross(AC, AD);  //Triangle ACD
-//    glm::vec3 ADB_normal = glm::cross(AD, AB);  //Triangle ABD
-//
-//    //Check if the origin is outside the ABC face
-//    if (glm::dot(ABC_normal, AO) > 0) {
-//        //Origin is outside ABC, handle it like a triangle case
-//        simplex = { A, B, C };
-//        direction = ABC_normal;
-//        return false;
-//    }
-//
-//    //Check if the origin is outside the ACD face
-//    if (glm::dot(ACD_normal, AO) > 0) {
-//        //Origin is outside ACD, handle it like a triangle case
-//        simplex = { A, C, D };
-//        direction = ACD_normal;
-//        return false;
-//    }
-//
-//    //Check if the origin is outside the ABD face
-//    if (glm::dot(ADB_normal, AO) > 0) {
-//        //Origin is outside ABD, handle it like a triangle case
-//        simplex = { A, D, B };
-//        direction = ADB_normal;
-//        return false;
-//    }
-//
-//    //If the origin is not outside any face, it must be inside the tetrahedron
-//    return true;  // Collision detected (origin inside the tetrahedron)
-//}
-
 inline bool HandleSimplex(Simplex& simplex, glm::vec3& direction)
 {
     switch (simplex.size())
@@ -299,8 +209,8 @@ inline Face CreateFace(int v1,int v2,int v3, const std::vector<SupportPoint>& po
     //normal calculation became nan on one of the component when normalized
     glm::vec3 test = glm::cross(B - A, C - A);//glm::normalize(glm::cross(B - A, C - A)); 
     newFace.normal = test;
-    if (glm::dot(newFace.normal, A) < 0) newFace.normal = -newFace.normal;
     newFace.distance = glm::dot(newFace.normal, A);
+    if (glm::dot(newFace.normal, A) < 0) newFace.normal = -newFace.normal; newFace.distance = -newFace.distance;
     return newFace;
 }
 
@@ -317,7 +227,6 @@ inline void AddIfUniqueEdges(std::vector<std::pair<int,int>>& edge, const std::a
 inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex) 
 {
     std::vector<SupportPoint> polytope(simplex.begin(), simplex.end());
-    //std::reverse(polytope.begin(), polytope.end()); // reverse the order to follow push back (lastest one is at back)
     std::vector<Face> faces;
 
     std::vector<std::array<int, 3>> indices =
@@ -326,11 +235,6 @@ inline const PolytopeData InitalizePolytopeV2(const Simplex& simplex)
         {0, 3, 1}, 
         {0, 2, 3}, 
         {1, 3, 2}
-
-        //{2, 1, 0},
-        //{1, 3, 0},
-        //{3, 2, 0},
-        //{2, 3, 1}
     };
 
     for(const auto& faceIndexSet :indices)
@@ -397,18 +301,18 @@ inline bool ExpandPolytope(PolytopeData& data, int& closestFaceIndex, const Supp
 //VISUALIZECLOSEST FACE
 inline void VisualizePolytopeWithClosestFace(const PolytopeData& data, const int closestFaceIndex)
 {
-    ////Visualize the whole polytope
-    //for (const Face& face : data.face)
-    //{
-    //    glm::vec3 A = data.polytope[face.polytopeIndices[0]].minkowDiff;
-    //    glm::vec3 B = data.polytope[face.polytopeIndices[1]].minkowDiff;
-    //    glm::vec3 C = data.polytope[face.polytopeIndices[2]].minkowDiff;
+    //Visualize the whole polytope
+    for (const Face& face : data.face)
+    {
+        glm::vec3 A = data.polytope[face.polytopeIndices[0]].minkowDiff;
+        glm::vec3 B = data.polytope[face.polytopeIndices[1]].minkowDiff;
+        glm::vec3 C = data.polytope[face.polytopeIndices[2]].minkowDiff;
 
-    //    // Draw the edges of the new face
-    //    Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3); // Cyan for the edges
-    //    Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
-    //    Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
-    //}
+        // Draw the edges of the new face
+        Debug::DrawLine(A, B, glm::vec4(0, 1, 1, 1), 3); // Cyan for the edges
+        Debug::DrawLine(B, C, glm::vec4(0, 1, 1, 1), 3);
+        Debug::DrawLine(C, A, glm::vec4(0, 1, 1, 1), 3);
+    }
 
 
 
@@ -444,33 +348,19 @@ inline bool Barycentric(const glm::vec3& a, const glm::vec3& b, const glm::vec3&
     float d20 = dot(v2, v0);
     float d21 = dot(v2, v1);
     float denom = d00 * d11 - d01 * d01;
-    
+
+#ifndef NDEBUG
     if (denom == 0)
     {
         std::cout << "denom 0\n";
         return false;
     }
+#endif
 
-    if(isinf(denom))
-    {
-        std::cout << "bary inf\n";
-        return false;
-    }
-
-    if (denom != denom)
-    {
-        std::cout << "bary nan\n";
-        return false;
-    }
     v = (d11 * d20 - d01 * d21) / denom;
     w = (d00 * d21 - d01 * d20) / denom;
     u = 1.0f - v - w;
 
-    if (u != u || v != v || w != w)
-    {
-        std::cout << "bary ERROR \n";
-        return false;
-    }
     return true;
 }
 

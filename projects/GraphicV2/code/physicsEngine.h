@@ -13,9 +13,10 @@ class PhysicsEngine
 {
 	public:
 		std::vector<GameObject*> objects; // list of objects in the scene
+		bool enableGravity = false;
 		glm::vec3 gravity; // user defined gravity vector
 
-		PhysicsEngine() : gravity(0.0f,-0.00f,0.0f){} //default gravity
+		PhysicsEngine() : gravity(0.0f,-0.98f,0.0f){} //default gravity
 
 		void DeleteObjectData()
 		{
@@ -33,74 +34,41 @@ class PhysicsEngine
 
 			for (GameObject* obj : objects)
 			{
-				ApplyGravity(obj);
+				if(enableGravity)
+					ApplyGravity(obj);
 				obj->OnUpdate(deltaTime);
 				obj->isColliding = false;
+				obj->debugC = glm::vec4(0, 0, 1, 0);
 			}
 
 			std::vector<std::pair<GameObject*, GameObject*>> potentialCollisions = SweepAndPrune();
 			const int maxIteration = 10;
 
-#ifndef NDEBUG
-			for (GameObject* obj : objects) //only for debug remove this later
+			for(const auto& pair : potentialCollisions)
 			{
-				Debug::DrawBox(obj->boundingbox.GetPosition(), glm::vec3(), obj->boundingbox.GetExtents(), obj->debugC, 1.0f);
-			}
-#endif
+				GameObject& objA = *pair.first;
+				GameObject& objB = *pair.second;
+				Simplex simplexPs;	
 
-				for(const auto& pair : potentialCollisions)
+
+				bool collision = GJK(objA,objB,simplexPs);
+				if(collision)
 				{
-					GameObject& objA = *pair.first;
-					GameObject& objB = *pair.second;
-					Simplex simplexPs;	
+					objA.debugC = glm::vec4(1, 0, 1, 1);
+					objB.debugC = glm::vec4(1, 0, 1, 1);
 
+					objA.isColliding = true;
+					objB.isColliding = true;
 
-					bool collision = GJK(objA,objB,simplexPs);
-					if(collision)
-					{
-						objA.debugC = glm::vec4(1, 0, 1, 1);
-						objB.debugC = glm::vec4(1, 0, 1, 1);
-#ifndef NDEBUG
-						//// Predefined tetrahedron faces
-						//std::vector<std::array<int, 3>> indices =
-						//{
-						//	{0,1,2},
-						//	{0,3,1},
-						//	{0,2,3},
-						//	{1,3,2}
-						//};
-						//for(const auto& i : indices)
-						//{
-						//	Debug::DrawLine(SupportA[i[0]], SupportA[i[1]], glm::vec4(1, 0, 1, 0), 1);
-						//	Debug::DrawLine(SupportA[i[1]], SupportA[i[2]], glm::vec4(1, 0, 1, 0), 1);
-						//	Debug::DrawLine(SupportA[i[2]], SupportA[i[0]], glm::vec4(1, 0, 1, 0), 1);
+					//EPA 
+					glm::vec3 collisionNormal = glm::vec3(0);
+					float penetrationDepth = 0;
+					std::pair<glm::vec3, glm::vec3> collisionPoints;
 
-						//	Debug::DrawLine(SupportB[i[0]], SupportB[i[1]], glm::vec4(1, 0.7f, 0, 0), 1);
-						//	Debug::DrawLine(SupportB[i[1]], SupportB[i[2]], glm::vec4(1, 0.7f, 0, 0), 1);
-						//	Debug::DrawLine(SupportB[i[2]], SupportB[i[0]], glm::vec4(1, 0.7f, 0, 0), 1);
-
-						//	Debug::DrawLine(simplexPs[i[0]] + glm::vec3(1), simplexPs[i[1]] + glm::vec3(1), glm::vec4(1, 0, 0, 0), 1);
-						//	Debug::DrawLine(simplexPs[i[1]] + glm::vec3(1), simplexPs[i[2]] + glm::vec3(1), glm::vec4(1, 0, 0, 0), 1);
-						//	Debug::DrawLine(simplexPs[i[2]] + glm::vec3(1), simplexPs[i[0]] + glm::vec3(1), glm::vec4(1, 0, 0, 0), 1);
-						//}
-#endif
-						objA.isColliding = true;
-						objB.isColliding = true;
-
-						//EPA 
-						glm::vec3 collisionNormal = glm::vec3(0);
-						float penetrationDepth = 0;
-						std::pair<glm::vec3, glm::vec3> collisionPoints;
-
-						//ERROR:PROBLEM WITH ROTATED OBJECT, CLOSEST FACE IS NOT FINDING THE BEST ONE (POTENTIAL ERROR IN EXPANDING POLYTOPE)
-						if (EPAV2(objA, objB, simplexPs, collisionNormal, penetrationDepth, collisionPoints))
-							SolveCollision(objA, objB, collisionNormal, penetrationDepth,collisionPoints);
-
-						//JUST TO TEST
-					    objA.OnUpdate(deltaTime);
-						objB.OnUpdate(deltaTime);
-					}
+					if (EPAV2(objA, objB, simplexPs, collisionNormal, penetrationDepth, collisionPoints))
+						SolveCollision(objA, objB, collisionNormal, penetrationDepth,collisionPoints);
 				}
+			}
 		}
 
 		//Apply gravity upon all the object and update object position and velocity
@@ -109,10 +77,9 @@ class PhysicsEngine
 			if (!obj->mass > 0) //FOr NOW LETS LIMIT (SO NOT OCCURINGG ANY ZERO DIVISION) (SOLUTION IN OBJ CONSTRUCT (0 MASS Manually set it to 1))
 				return;
 				
+			//if (obj->isColliding) return;
 			//glm::vec3 gravityForce = obj->mass * gravity;
-			if (!obj->isColliding)
 				obj->acceleration = gravity; //gravityForce / obj->mass;
-			else obj->acceleration = glm::vec3(0.0f);
 
 		}
 
@@ -172,7 +139,7 @@ class PhysicsEngine
 			for(GameObject* obj : objects)
 			{
 				//Get the latest update on the bounding box before checking
-				obj->boundingbox.UpdateBounds(obj->transform);
+				obj->boundingbox.UpdateBounds(obj->GetTransform());
 				AABB& aabb = obj->boundingbox;
 				entries.push_back({ aabb.min.x,aabb.max.x,obj });
 			}
@@ -212,7 +179,6 @@ class PhysicsEngine
 				float dotP = glm::dot(support.minkowDiff, direction);
 				if ( dotP < 0)
 				{
-					std::cout << dotP << '\n';
 					return false; //no collision
 				}
 
@@ -250,8 +216,8 @@ class PhysicsEngine
 #ifndef NDEBUG
 				//Visualize the whole polytope
 #endif
-
 				VisualizePolytopeWithClosestFace(polytopeData, closestFaceIndex);
+
 				glm::vec3 closestFaceNormal = normalize(polytopeData.face[closestFaceIndex].normal);
 				float closestFaceDistance = polytopeData.face[closestFaceIndex].distance;
 
@@ -261,6 +227,7 @@ class PhysicsEngine
 				float newDistance = glm::dot(closestFaceNormal,supportPoint.minkowDiff);
 				if (newDistance - closestFaceDistance < 1e-6f)
 				{
+
 					collisionNormal = closestFaceNormal;
 
 					// ----------------- CALCULATE COLLISION POINTS -------------------
@@ -326,8 +293,8 @@ class PhysicsEngine
 			const glm::vec3 contactBVelocity = collisionNormal * (objB.velocity + cross(objB.angularVelocity, rB));
 			
 			//CALCULATE PENETRATION CORRECTION
-			const float percent = 0.99f;
-			const float slop = 0.09f;
+			const float percent = 0.9f;
+			const float slop = 0.01f;
 
 			glm::vec3 correction = collisionNormal * percent
 				* std::max(penetrationDepth - slop, 0.0f)
@@ -342,8 +309,8 @@ class PhysicsEngine
 			}
 			if (relativeVelocity == 0) //at rest
 			{
-				objA.isColliding = true;
-				objB.isColliding = true;
+				//objA.isColliding = true;
+				//objB.isColliding = true;
 				if (objA.mass > 0.0f)
 					objA.GetPosition() -= correction * 1.0f/objA.mass; // Move A proportional to A's mass
 				if (objB.mass > 0.0f)
@@ -369,7 +336,7 @@ class PhysicsEngine
 				effectiveMassB = 1.0f / invMassB + dot(inertiaTensorB * cross(rB, collisionNormal), collisionNormal);
 			}
 
-			const float restitutionCoefficient = 0.90f;
+			const float restitutionCoefficient = 0.80f;
 				
 			//CALCULATE FINAL IMPULSE (brute force)
 			glm::vec3 crossA = cross(rA, collisionNormal);
@@ -383,18 +350,19 @@ class PhysicsEngine
 			float denominator = invMassA + invMassB + angularA + angularB;
 
 			const float impulse = -(1.0f + restitutionCoefficient) * relativeVelocity / denominator;
-			const glm::vec3 angularImpulse = cross(impulse * collisionNormal,contactPA - contactPB );
 
 			if (objA.mass > 0.0f ) {
 				objA.GetPosition() -= correction * invMassA; // Move A proportional to A's mass
-				objA.angularVelocity += objA.inertiaTensorInWorld * angularImpulse;
+				/*glm::vec3 torque = glm::cross(contactPA - objA.GetPosition(), glm::vec3(impulse));
+				objA.angularVelocity += objA.inertiaTensorInWorld * torque;*/
 			}
 			if (objB.mass > 0.0f) {
 				objB.GetPosition() += correction * invMassB; // Move B proportional to B's mass
-				objB.angularVelocity += objB.inertiaTensorInWorld * angularImpulse;
+				//glm::vec3 torque = glm::cross(contactPB - objB.GetPosition(), glm::vec3(impulse));
+				//objB.angularVelocity += objB.inertiaTensorInWorld * torque;
 			}
+			ApplyForce(&objA, collisionNormal, impulse,contactPA);
+			ApplyForce(&objB, -collisionNormal, impulse, contactPB);
 			//APPLY THE IMPULS
-			ApplyForce(&objA, collisionNormal, impulse);
-			ApplyForce(&objB, -collisionNormal, impulse);
 		}
 };

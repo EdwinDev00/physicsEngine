@@ -169,10 +169,52 @@ GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale,s
 		glm::vec3 extent = boundingbox.GetExtents();
 		float volume = extent.x * extent.y * extent.z; //AABB Volume
 
-		// Estimate the mass based on the volume (future can also define the density)
+		// Estimate the mass based on the volume
 		mass = volume * 5.0f; //Assuming constant density for simplicity (density set to 5); 
 	}
 	else mass = 0;
+}
+
+void GameObject::ApplyRotation(const glm::vec3& angularDisplacement)
+{
+	inertiaTensorInWorld = modelRotation * CalculateInertiaTensorMat() * glm::transpose(modelRotation);
+	glm::quat orientation(modelRotation);
+	glm::quat spin(0, angularDisplacement);
+	orientation += spin * orientation * 0.5f;
+	orientation = glm::normalize(orientation);
+	modelRotation = glm::mat4(orientation);
+	transform = modelTranslation * modelRotation * modelScale;
+}
+
+glm::mat4 GameObject::CalculateInertiaTensorMat() const 
+{
+	glm::vec3 extends = boundingbox.getOriginalExtend();
+	float w = extends.x; float h = extends.y; float d = extends.z;
+
+	//Inertia tensor (moment of inertia for cuboid)
+	//OPTIMIZE: COMPUTE IN CONSTRUCTOR (PROBLEM: IF RUNTIME SCALE WRONG NEED UPDATE + MASS UPDATE (IMPORTANT!!))
+	return
+		glm::inverse(glm::mat4
+		(
+			(1.0f / 12.0f) * mass * (h * h + d * d), 0, 0, 0, // Ix
+			0, (1.0f / 12.0f) * mass * (w * w + d * d), 0, 0, // Iy
+			0, 0, (1.0f / 12.0f) * mass * (w * w + h * h), 0, // Iz
+			0, 0, 0, 1
+		));
+}
+
+glm::vec3 GameObject::CalculateInertiaTensor() const
+{
+	glm::vec3 extends = boundingbox.GetExtents();
+	float w = extends.x; float h = extends.y; float d = extends.z;
+
+	//Inertia tensor (moment of inertia for cuboid)
+	return glm::vec3
+	(
+		(1.0f / 12.0f) * mass * (h * h + d * d), // Ix
+		(1.0f / 12.0f) * mass * (w * w + d * d), // Iy
+		(1.0f / 12.0f) * mass * (w * w + h * h)	 // Iz
+	);
 }
 
 void GameObject::Draw(ShaderResource& program, Object::Camera& cam) 
