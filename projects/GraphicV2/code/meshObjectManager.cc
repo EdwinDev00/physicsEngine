@@ -114,7 +114,7 @@ void MeshObject::ReadDataV2(const std::string& line, std::vector<glm::vec2>& out
 
 GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale,std::string modelPath, bool isStatic, std::string texPath)
 	: position(position), rotation(rotation), scale(scale), velocity(glm::vec3(0.0f)), acceleration(glm::vec3(0.0f)), mass(0), angularVelocity(glm::vec3(0.0f)),
-	  angularAcceleration(glm::vec3(0.0f)), modelRotation(glm::identity<glm::mat4>())
+	  modelRotation(glm::identity<glm::mat4>())
 {
 	static int count;
 	name = modelPath + std::to_string(count++);
@@ -149,16 +149,30 @@ GameObject::GameObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale,s
 		}
 	}
 
-	for(const auto& triangle : triangles)
-	{
-		for(const auto& vertex : triangle.vertices)
+	//TESTING NEW FETCH 
+	for (auto& mesh : modelObject->meshes)
+		for (const auto& data : mesh.primitives)
 		{
-			if(  colliderVertices.end() == std::find(colliderVertices.begin(), colliderVertices.end(), vertex))
+			for (int i = 0; i < data.vertices.size(); i ++)
 			{
-				colliderVertices.push_back(vertex);
+				if (colliderVertices.end() == std::find(colliderVertices.begin(), colliderVertices.end(), data.vertices[i].position))
+				{
+					colliderVertices.push_back(data.vertices[i].position);
+				}
 			}
 		}
-	}
+
+	//for(const auto& triangle : triangles)
+	//{
+	//	for(const auto& vertex : triangle.vertices)
+	//	{
+	//		if(  colliderVertices.end() == std::find(colliderVertices.begin(), colliderVertices.end(), vertex))
+	//		{
+	//			colliderVertices.push_back(vertex);
+	//		}
+	//	}
+	//}
+
 
 	//set the aabb bounds exactly like the modeled size (include matching in scale)
 	boundingbox = AABB(modelObject);

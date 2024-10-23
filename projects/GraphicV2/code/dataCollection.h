@@ -246,12 +246,6 @@ public:
 	}
 };
 
-struct Face //polytope face
-{
-	std::array<int, 3> polytopeIndices = {}; //indices of the points in the polytope that forms this face
-	glm::vec3 normal;
-	float distance;
-};
 
 struct SupportPoint
 {
@@ -259,13 +253,6 @@ struct SupportPoint
 	glm::vec3 Bsupport;
 	glm::vec3 minkowDiff;
 };
-
-struct PolytopeData
-{
-	std::vector<SupportPoint> polytope;
-	std::vector<Face> face; // faces of the polytope, each with indices, normal, distance
-};
-
 
 struct Simplex
 {

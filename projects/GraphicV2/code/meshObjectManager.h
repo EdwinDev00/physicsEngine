@@ -81,7 +81,6 @@ public:
 	glm::vec3 acceleration;
 	float mass;
 	glm::vec3 angularVelocity;
-	glm::vec3 angularAcceleration;
 	glm::mat3 inertiaTensorInWorld;
 	bool isColliding = false;
 	std::vector<glm::vec3> colliderVertices; 
@@ -98,7 +97,7 @@ public:
 		velocity += acceleration * deltaTime; //Gravity 
 		position += velocity * deltaTime;
 		acceleration = glm::vec3(0.0f); // reset acceleration for next frame (forces are applied per frame)
-		ApplyRotation(angularVelocity * deltaTime);
+		ApplyRotation(angularVelocity * deltaTime);		
 		//Update the AABB bounds according to the changes (translation (position) , scale)
 		boundingbox.UpdateBounds(transform);
 		Debug::DrawBox(this->boundingbox.GetPosition(), glm::vec3(), this->boundingbox.GetExtents(), debugC, 4.0f);
@@ -112,7 +111,7 @@ public:
 	inline  glm::vec3& GetPosition()  { return position; }
 	inline  glm::vec3& GetRotation()  { return rotation; }
 	inline  glm::vec3& GetScale()  { return scale; }
-	inline std::string GetName() { return name; }
+	inline const std::string& GetName() const { return name; }
 
 	inline const glm::mat4& GetTransform() const { return transform; }
 	inline const glm::mat4& GetTranslationMat() const  { return modelTranslation; }
@@ -120,6 +119,12 @@ public:
 	inline const glm::mat4& GetScaleMat() const { return modelScale; }
 
 	inline const std::vector<Triangles>& GetTriangles() const { return triangles; }
+
+	glm::vec3 TransformLocalPointToWorldSpace(const glm::vec3& localPoint) const
+	{
+		glm::vec4 worldPoint = modelTranslation * modelRotation * modelScale * glm::vec4(localPoint, 1);
+		return glm::vec3(worldPoint);
+	}
 
 	glm::vec3 CalculateInertiaTensor() const;
 

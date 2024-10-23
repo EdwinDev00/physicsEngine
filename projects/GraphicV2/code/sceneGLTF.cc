@@ -17,9 +17,6 @@
 #include "physicsEngine.h"
 #include "inlineFunc.h"
 
-
-glm::vec3 hitPoint; //global for debugging otherwise move it back inside left mouse
-
 namespace scene
 {
 	inline std::shared_ptr<Ray> SceneGLTF::CreateRayFromMouse()
@@ -70,6 +67,9 @@ namespace scene
 		phyEngine->AddObject(ground);
 		phyEngine->AddObject(CubeGLTF);
 		phyEngine->AddObject(CubeGLTF2);
+		//phyEngine->AddObject(helmGLTF);
+
+
 
 		shader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/gBuffer.glsl");
 		quadShader = std::make_shared<ShaderResource>("../projects/GraphicV2/code/quad.glsl");
@@ -79,7 +79,7 @@ namespace scene
 		Sun = new DirectionalLight(glm::vec3(0, -1, 0), glm::vec3(.5f, .5f, .5f),1.0f);
 
 		//testing the ray to spawn
-		ray = std::make_shared<Ray>(cam->GetPosition(), cam->GetDirection()); //Just for debug ray (change it back to local when works)
+		ray = std::make_shared<Ray>(cam->GetPosition(), cam->GetDirection());
 
 		Debug::Init();
 	}
@@ -93,6 +93,9 @@ namespace scene
 		delete phyEngine;
 		phyEngine = nullptr;
 		cam = nullptr;
+		delete &ray;
+		ray = nullptr;
+
 	}
 
 	void scene::SceneGLTF::OnUpdate(float deltaTime)
@@ -121,24 +124,24 @@ namespace scene
 		if (inputManager->mouse.pressed[input::MouseButton::left])
 		{
 			ray = CreateRayFromMouse();
-			
+			glm::vec3 hitPoint; //global for debugging otherwise move it back inside left mouse
 			/*GameObject**/ hitObject = phyEngine->Raycast(*ray,hitPoint);
 
 			if(hitObject)
 			{
 				phyEngine->ApplyForce(hitObject, ray->direction, forceMagnitude,hitPoint);
 			}
+			//Debug only RAY 
+			glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
+			if(hitObject)
+			{
+				Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
+				Debug::DrawBox(hitPoint, glm::vec3(), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec4(0, 1, 0, 1), 2);
+			}
+			else
+				Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
 		}
 
-		//Debug only RAY 
-		glm::vec3 rayEnd = ray->origin + ray->direction * 100.0f;  // Scale to a reasonable length
-		if(hitObject)
-		{
-			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));  // Red color for the ray
-			Debug::DrawBox(hitPoint, glm::vec3(), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec4(0, 1, 0, 1), 2);
-		}
-		else
-			Debug::DrawLine(ray->origin, rayEnd, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));  // Red color for the ray
 	}
 
 	void scene::SceneGLTF::OnRender()
